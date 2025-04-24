@@ -3,6 +3,8 @@ package com.everton.taskmanager.entities.organization;
 import com.everton.taskmanager.entities.attributes.eventType.EventType;
 import com.everton.taskmanager.entities.attributes.taskStatus.TaskStatus;
 import com.everton.taskmanager.entities.attributes.taskType.TaskType;
+import com.everton.taskmanager.entities.projects.Folder;
+import com.everton.taskmanager.entities.projects.Project;
 import com.everton.taskmanager.entities.teams.Team;
 import com.everton.taskmanager.entities.user.User;
 import jakarta.persistence.*;
@@ -37,6 +39,12 @@ public class Organization {
 
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Team> teams;
+
+    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Project> projects;
+
+    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Folder> folders;
 
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TaskType> taskTypes;
