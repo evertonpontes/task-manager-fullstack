@@ -3,6 +3,8 @@ package com.everton.taskmanager.exceptions.handle;
 import com.everton.taskmanager.exceptions.AlreadyExistsException;
 import com.everton.taskmanager.exceptions.UserNotFoundException;
 import com.everton.taskmanager.exceptions.model.ApiError;
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -71,4 +73,5 @@ public class RestExceptionHandler {
                 .build();
         return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
     }
+
 }

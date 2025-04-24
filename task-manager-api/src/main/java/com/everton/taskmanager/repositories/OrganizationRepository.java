@@ -6,11 +6,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface OrganizationRepository extends JpaRepository<Organization, String> {
 
     @Query("SELECT org FROM Organization org WHERE org.user.id = :userId")
-    public Organization findOrganizationByUserId(@Param("userId") String userId);
+    public List<Organization> findAllOrganizationsByUserId(@Param("userId") String userId);
 
     @Query("SELECT org FROM Organization org WHERE org.user.id = :userId and org.name = :name")
     public Organization findOrganizationByUserIdAndName(@Param("userId") String userId, @Param("name") String name);

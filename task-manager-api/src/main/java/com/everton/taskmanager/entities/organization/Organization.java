@@ -1,11 +1,11 @@
 package com.everton.taskmanager.entities.organization;
 
+import com.everton.taskmanager.entities.attributes.eventType.EventType;
+import com.everton.taskmanager.entities.attributes.taskStatus.TaskStatus;
+import com.everton.taskmanager.entities.attributes.taskType.TaskType;
 import com.everton.taskmanager.entities.user.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
@@ -15,6 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
+@Setter
 public class Organization {
 
     @Id
@@ -32,4 +33,13 @@ public class Organization {
             joinColumns = @JoinColumn(name = "organization_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id"))
     private List<User> attendees;
+
+    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TaskType> taskTypes;
+
+    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EventType> eventTypes;
+
+    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TaskStatus> taskStatuses;
 }
