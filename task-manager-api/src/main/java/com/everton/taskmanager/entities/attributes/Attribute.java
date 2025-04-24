@@ -1,6 +1,7 @@
 package com.everton.taskmanager.entities.attributes;
 
 import com.everton.taskmanager.entities.organization.Organization;
+import com.everton.taskmanager.entities.teams.Team;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -24,4 +25,8 @@ public abstract class Attribute {
     @ManyToOne
     @JoinColumn(name = "organization_id", nullable = false)
     private Organization organization;
+
+    @ManyToOne
+    @JoinColumn(name = "team_id", nullable = false)
+    private Team team;
 }

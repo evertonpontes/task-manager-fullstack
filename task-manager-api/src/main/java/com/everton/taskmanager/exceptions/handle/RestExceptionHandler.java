@@ -7,6 +7,7 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -72,6 +73,19 @@ public class RestExceptionHandler {
                 .erros(errorList)
                 .build();
         return new ResponseEntity<>(apiError, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
+        ApiError apiError = ApiError
+                .builder()
+                .timestamp(LocalDateTime.now())
+                .code(HttpStatus.FORBIDDEN.value())
+                .status(HttpStatus.FORBIDDEN.name())
+                .erros(List.of(ex.getMessage()))
+                .build();
+
+        return new ResponseEntity<>(apiError, HttpStatus.FORBIDDEN);
     }
 
 }

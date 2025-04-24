@@ -13,6 +13,7 @@ import com.everton.taskmanager.mapper.OrganizationMapper;
 import com.everton.taskmanager.repositories.OrganizationRepository;
 import com.everton.taskmanager.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,7 @@ public class OrganizationService {
     public OrganizationDTO createOrganization(CreateOrganizationDTO organization) {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = userRepository.findUserByEmail(auth.getName());
+        User user = (User) auth.getPrincipal();
 
         if (organizationRepository.findOrganizationByUserIdAndName(user.getId(), organization.name()) != null) throw new AlreadyExistsException("This name was already given to another organization.");
 
@@ -70,7 +71,12 @@ public class OrganizationService {
 
     public OrganizationDTO saveOrganization (String organizationId, SaveOrganizationDTO organizationDTO) {
 
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) auth.getPrincipal();
+
         Organization organization = organizationRepository.findById(organizationId).orElseThrow();
+
+        if (!organization.getUser().getId().equals(user.getId())) throw new AccessDeniedException("You do not have permission to edit this resource.");
 
         organization.setName(organizationDTO.name());
 
@@ -78,6 +84,14 @@ public class OrganizationService {
     }
 
     public void deleteOrganization (String organizationId) {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) auth.getPrincipal();
+
+        Organization organization = organizationRepository.findById(organizationId).orElseThrow();
+
+        if (!organization.getUser().getId().equals(user.getId())) throw new AccessDeniedException("You do not have permission to delete this resource.");
+
         try {
             organizationRepository.deleteById(organizationId);
         } catch (Exception e) {

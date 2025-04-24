@@ -1,6 +1,7 @@
 package com.everton.taskmanager.entities.user;
 
 import com.everton.taskmanager.entities.organization.Organization;
+import com.everton.taskmanager.entities.teams.Team;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -37,6 +38,9 @@ public class User implements UserDetails {
 
     @ManyToMany(mappedBy = "attendees")
     private List<Organization> organizations;
+
+    @ManyToMany(mappedBy = "attendees")
+    private List<Team> teams;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

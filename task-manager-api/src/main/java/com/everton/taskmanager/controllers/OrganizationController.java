@@ -43,7 +43,7 @@ public class OrganizationController {
 
     @PatchMapping("/{organizationId}/attributes")
     public ResponseEntity<OrganizationAttributesDTO> saveOrganizationAttributes(@PathVariable("organizationId") String organizationId, @RequestBody @Valid SaveOrganizationAttributesDTO attributesDTO) {
-        return new ResponseEntity<>(attributeService.saveAttributes(organizationId, attributesDTO), HttpStatus.OK);
+        return new ResponseEntity<>(attributeService.saveOrganizationAttributes(organizationId, attributesDTO), HttpStatus.OK);
     }
 
     @DeleteMapping("/{organizationId}")
