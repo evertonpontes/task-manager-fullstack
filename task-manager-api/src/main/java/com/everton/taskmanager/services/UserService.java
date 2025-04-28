@@ -1,24 +1,24 @@
 package com.everton.taskmanager.services;
 
-import com.everton.taskmanager.entities.user.*;
-import com.everton.taskmanager.exceptions.AlreadyExistsException;
-import com.everton.taskmanager.exceptions.UserNotFoundException;
+import com.everton.taskmanager.config.exceptions.AlreadyExistsException;
+import com.everton.taskmanager.config.security.JwtTokenService;
+import com.everton.taskmanager.config.security.userdetails.UserDetailsImpl;
+import com.everton.taskmanager.dtos.user.CreateUserDTO;
+import com.everton.taskmanager.dtos.user.LoginDTO;
+import com.everton.taskmanager.dtos.user.TokenDTO;
+import com.everton.taskmanager.dtos.user.UserResponseDTO;
+import com.everton.taskmanager.entities.users.User;
 import com.everton.taskmanager.mapper.UserMapper;
 import com.everton.taskmanager.repositories.UserRepository;
-import com.everton.taskmanager.security.JwtTokenService;
-import com.everton.taskmanager.security.SecurityConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-public class UserService implements UserDetailsService {
+public class UserService {
 
     @Autowired
     private UserRepository userRepository;
@@ -27,7 +27,7 @@ public class UserService implements UserDetailsService {
     private UserMapper userMapper;
 
     @Autowired
-    private SecurityConfiguration securityConfiguration;
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -35,41 +35,31 @@ public class UserService implements UserDetailsService {
     @Autowired
     private JwtTokenService jwtTokenService;
 
-    public RecoveryJwtTokenDTO authenticateUser(LoginUserDTO loginUserDTO) {
+    public UserResponseDTO createUser(CreateUserDTO userDTO) {
 
-        UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken =
-                new UsernamePasswordAuthenticationToken(loginUserDTO.email(), loginUserDTO.password());
+        String email = userDTO.email().trim().toLowerCase();
+        String name = userDTO.name().trim();
 
-        Authentication auth = authenticationManager.authenticate(usernamePasswordAuthenticationToken);
+        if (userRepository.findByEmail(email).isPresent()) throw new AlreadyExistsException("The Provided email is already registered.");
 
-        User userDetails = (User) auth.getPrincipal();
-
-        return new RecoveryJwtTokenDTO(jwtTokenService.generateToken(userDetails));
-    }
-
-    public RecoveryUserDTO createUser(UserToRegisterDTO userDTO) {
-
-        if (userRepository.findUserByEmail(userDTO.email()) != null) throw new AlreadyExistsException("Email address already registered.");
-
-        User newUser = User
-                .builder()
-                .name(userDTO.name())
-                .email(userDTO.email())
-                .password(securityConfiguration.passwordEncoder().encode(userDTO.password()))
+        User user = User.builder()
+                .name(name)
+                .email(email)
+                .password(passwordEncoder.encode(userDTO.password()))
                 .build();
 
-        User userSaved = userRepository.save(newUser);
-
-        return userMapper.userToRecoveryUserDTO(userSaved);
+        return userMapper.userToUserResponseDTO(userRepository.save(user));
     }
 
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public TokenDTO authenticateUser(LoginDTO loginDTO) {
 
-        User user = userRepository.findUserByEmail(username);
+        UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken =
+                new UsernamePasswordAuthenticationToken(loginDTO.email(), loginDTO.password());
 
-        if (user == null) throw new UserNotFoundException();
+        Authentication authentication = authenticationManager.authenticate(usernamePasswordAuthenticationToken);
 
-        return user;
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+        return new TokenDTO(jwtTokenService.generateToken(userDetails));
     }
 }

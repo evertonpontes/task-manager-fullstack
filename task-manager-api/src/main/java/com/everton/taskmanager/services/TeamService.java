@@ -1,111 +1,217 @@
 package com.everton.taskmanager.services;
 
-import com.everton.taskmanager.entities.attributes.eventType.EventType;
-import com.everton.taskmanager.entities.attributes.taskStatus.TaskStatus;
-import com.everton.taskmanager.entities.attributes.taskType.TaskType;
-import com.everton.taskmanager.entities.organization.Organization;
-import com.everton.taskmanager.entities.teams.CreateTeamDTO;
-import com.everton.taskmanager.entities.teams.SaveTeamDTO;
-import com.everton.taskmanager.entities.teams.Team;
-import com.everton.taskmanager.entities.teams.TeamDTO;
-import com.everton.taskmanager.entities.user.User;
+import com.everton.taskmanager.config.exceptions.ResourceNotFoundException;
+import com.everton.taskmanager.dtos.groups.*;
+import com.everton.taskmanager.dtos.user.UserResponseDTO;
+import com.everton.taskmanager.entities.attributes.Attribute;
+import com.everton.taskmanager.entities.groups.organizations.Organization;
+import com.everton.taskmanager.entities.groups.teams.Team;
+import com.everton.taskmanager.entities.users.User;
 import com.everton.taskmanager.mapper.TeamMapper;
 import com.everton.taskmanager.repositories.OrganizationRepository;
 import com.everton.taskmanager.repositories.TeamRepository;
+import com.everton.taskmanager.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class TeamService {
 
     @Autowired
-    private TeamRepository teamRepository;
+    private OrganizationRepository organizationRepository;
 
     @Autowired
-    private OrganizationRepository organizationRepository;
+    private TeamRepository teamRepository;
 
     @Autowired
     private TeamMapper teamMapper;
 
-    public TeamDTO createTeam(String organizationId, CreateTeamDTO createTeamDTO) {
+    @Autowired
+    private AuthService authService;
 
-        Organization organization = organizationRepository.findById(organizationId).orElseThrow();
+    @Autowired
+    private UserRepository userRepository;
 
-        Team newTeam = Team.builder()
-                .name(createTeamDTO.name())
+    public GroupResponseDTO createTeam(String organizationId, SaveGroupDTO teamDTO) {
+        Organization organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
+
+        String name = teamDTO.name().trim();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to create a team in this organization.");
+        }
+
+        Team team = Team
+                .builder()
+                .name(name)
+                .owner(authenticatedUser)
                 .organization(organization)
                 .build();
 
-        Team teamWithAttributes = createAttributesTeam(createTeamDTO, newTeam);
-
-        return teamMapper.teamToTeamDTO(teamRepository.save(teamWithAttributes));
+        return teamMapper.teamToGroupResponseDTO(
+                teamRepository.save(team)
+        );
     }
 
-    public List<TeamDTO> findAllTeams (String organizationId) {
+    public List<GroupResponseDTO> findAllTeamsByOrganizationId(String organizationId) {
+        Organization organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
 
-        Organization organization = organizationRepository.findById(organizationId).orElseThrow();
+        User authenticatedUser = authService.getAuthenticatedUser();
 
-        return organization.getTeams().stream()
-                .map(team -> teamMapper.teamToTeamDTO(team))
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view teams of this organization");
+        }
+
+        Set<Team> teams = organization.getTeams();
+
+        return teams
+                .stream()
+                .map(teamMapper::teamToGroupResponseDTO)
                 .toList();
     }
 
-    public TeamDTO findTeamById (String teamId) {
+    public GroupResponseDTO findByTeamId(String teamId) {
+        Team team = teamRepository
+                .findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
 
-        Team team = teamRepository.findById(teamId).orElseThrow();
+        Organization organization = team.getOrganization();
 
-        return teamMapper.teamToTeamDTO(team);
-    }
+        User authenticatedUser = authService.getAuthenticatedUser();
 
-    public TeamDTO saveTeam (String teamId, SaveTeamDTO saveTeamDTO) {
-
-        Team team = teamRepository.findById(teamId).orElseThrow();
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) auth.getPrincipal();
-
-        if (!user.getOwnedOrganizations().contains(team.getOrganization())) throw new AccessDeniedException("You do not have permission to edit this resource.");
-
-        team.setName(saveTeamDTO.name());
-
-        return teamMapper.teamToTeamDTO(teamRepository.save(team));
-    }
-
-    public void deleteTeam (String teamId) {
-
-        Team team = teamRepository.findById(teamId).orElseThrow();
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) auth.getPrincipal();
-
-        if (!user.getOwnedOrganizations().contains(team.getOrganization())) throw new AccessDeniedException("You do not have permission to delete this resource.");
-
-        try {
-            teamRepository.deleteById(teamId);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view this team.");
         }
+
+        return teamMapper.teamToGroupResponseDTO(team);
     }
 
-    private Team createAttributesTeam(CreateTeamDTO createTeamDTO, Team team) {
+    public GroupResponseDTO updateTeam(String teamId, SaveGroupDTO teamDTO) {
+        Team team = teamRepository
+                .findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
 
-        List<TaskType> taskTypes = teamMapper.mapCreateAttributeDTOToTaskType(createTeamDTO.taskTypes());
-        List<EventType> eventTypes = teamMapper.mapCreateAttributeDTOToEventType(createTeamDTO.eventTypes());
-        List<TaskStatus> taskStatuses = teamMapper.mapCreateAttributeDTOToTaskStatus(createTeamDTO.taskStatuses());
+        Organization organization = team.getOrganization();
 
-        taskTypes.forEach(taskType -> taskType.setTeam(team));
-        eventTypes.forEach(eventType -> eventType.setTeam(team));
-        taskStatuses.forEach(taskStatus -> taskStatus.setTeam(team));
+        User authenticatedUser = authService.getAuthenticatedUser();
 
-        team.setTaskTypes(taskTypes);
-        team.setEventTypes(eventTypes);
-        team.setTaskStatuses(taskStatuses);
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to update this team.");
+        }
 
-        return  team;
+        String name = teamDTO.name().trim();
+
+        team.setName(name);
+
+        return teamMapper.teamToGroupResponseDTO(teamRepository.save(team));
     }
+
+    public GroupAttributesResponseDTO addAttributesToTeam(String teamId,
+                                                                  SaveAllGroupAttributesDTO attributesDTO) {
+        Team team = teamRepository
+                .findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
+
+        Organization organization = team.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to add attributes in this team.");
+        }
+
+        List<Attribute> attributes = attributesDTO.attributes()
+                .stream()
+                .map(teamMapper::saveAttributeDTOToAttribute)
+                .toList();
+
+        attributes.forEach(attribute -> attribute.setTeam(team));
+
+        team.getAttributes().clear();
+        team.getAttributes().addAll(attributes);
+
+        return teamMapper.teamToGroupAttributesResponseDTO(
+                teamRepository.save(team));
+    }
+
+    public GroupAttributesResponseDTO findAttributesByTeamId(String teamId) {
+        Team team = teamRepository
+                .findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
+
+        Organization organization = team.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view attributes in this team.");
+        }
+
+        return teamMapper.teamToGroupAttributesResponseDTO(team);
+    }
+
+    public List<UserResponseDTO> addMemberToTeam(String teamId, MemberEmailDTO emailDTO) {
+        Team team = teamRepository
+                .findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
+
+        Organization organization = team.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to add a member in this team.");
+        }
+
+        User member = userRepository.findByEmail(emailDTO.email())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+
+        organization.getMembers().add(member);
+
+        return teamMapper.userToUserResponseDTO(organizationRepository
+                .save(organization).getMembers().stream().toList());
+    }
+
+    public List<UserResponseDTO> findMembersByTeamId(String teamId) {
+        Team team = teamRepository
+                .findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
+
+        Organization organization = team.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view members in this team.");
+        }
+
+        return teamMapper.userToUserResponseDTO(organization.getMembers().stream().toList());
+    }
+
+    public void deleteTeam(String teamId) {
+        Team team = teamRepository
+                .findById(teamId)
+                .orElseThrow(() -> new ResourceNotFoundException("Team not found."));
+
+        Organization organization = team.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to delete this team.");
+        }
+
+        teamRepository.delete(team);
+    }
+
 }

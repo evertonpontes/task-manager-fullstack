@@ -1,102 +1,273 @@
 package com.everton.taskmanager.services;
 
-import com.everton.taskmanager.entities.attributes.eventType.EventType;
-import com.everton.taskmanager.entities.attributes.taskStatus.TaskStatus;
-import com.everton.taskmanager.entities.attributes.taskType.TaskType;
-import com.everton.taskmanager.entities.organization.Organization;
-import com.everton.taskmanager.entities.projects.CreateFolderDTO;
-import com.everton.taskmanager.entities.projects.Folder;
-import com.everton.taskmanager.entities.projects.FolderDTO;
-import com.everton.taskmanager.entities.projects.SaveFolderDTO;
-import com.everton.taskmanager.entities.teams.CreateTeamDTO;
-import com.everton.taskmanager.entities.teams.SaveTeamDTO;
-import com.everton.taskmanager.entities.teams.Team;
-import com.everton.taskmanager.entities.teams.TeamDTO;
-import com.everton.taskmanager.entities.user.User;
+import com.everton.taskmanager.config.exceptions.ResourceNotFoundException;
+import com.everton.taskmanager.dtos.groups.*;
+import com.everton.taskmanager.dtos.user.UserResponseDTO;
+import com.everton.taskmanager.entities.attributes.Attribute;
+import com.everton.taskmanager.entities.groups.folders.Folder;
+import com.everton.taskmanager.entities.groups.organizations.Organization;
+import com.everton.taskmanager.entities.groups.projects.Project;
+import com.everton.taskmanager.entities.users.User;
 import com.everton.taskmanager.mapper.FolderMapper;
-import com.everton.taskmanager.mapper.TeamMapper;
+import com.everton.taskmanager.mapper.ProjectMapper;
 import com.everton.taskmanager.repositories.FolderRepository;
 import com.everton.taskmanager.repositories.OrganizationRepository;
+import com.everton.taskmanager.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class FolderService {
 
     @Autowired
-    private FolderRepository folderRepository;
+    private OrganizationRepository organizationRepository;
 
     @Autowired
-    private OrganizationRepository organizationRepository;
+    private FolderRepository folderRepository;
 
     @Autowired
     private FolderMapper folderMapper;
 
-    public FolderDTO createFolder(String organizationId, CreateFolderDTO createFolderDTO) {
+    @Autowired
+    private ProjectMapper projectMapper;
 
-        Organization organization = organizationRepository.findById(organizationId).orElseThrow();
+    @Autowired
+    private AuthService authService;
 
-        Folder newFolder = Folder.builder()
-                .name(createFolderDTO.name())
+    @Autowired
+    private UserRepository userRepository;
+
+    public GroupResponseDTO createFolder(String organizationId, SaveGroupDTO folderDTO) {
+        Organization organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
+
+        String name = folderDTO.name().trim();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to create a folder in this organization.");
+        }
+
+        Folder folder = Folder
+                .builder()
+                .name(name)
+                .owner(authenticatedUser)
                 .organization(organization)
                 .build();
 
-        return folderMapper.folderToFolderDTO(folderRepository.save(newFolder));
+        return folderMapper.folderToGroupResponseDTO(
+                folderRepository.save(folder)
+        );
     }
 
-    public List<FolderDTO> findAllFolders (String organizationId) {
+    public List<GroupResponseDTO> findAllFoldersByOrganizationId(String organizationId) {
+        Organization organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
 
-        Organization organization = organizationRepository.findById(organizationId).orElseThrow();
+        User authenticatedUser = authService.getAuthenticatedUser();
 
-        return organization.getFolders().stream()
-                .map(folder -> folderMapper.folderToFolderDTO(folder))
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view folders of this organization");
+        }
+
+        Set<Folder> folders = organization.getFolders();
+
+        return folders
+                .stream()
+                .map(folderMapper::folderToGroupResponseDTO)
                 .toList();
     }
 
-    public FolderDTO findFolderById (String folderId) {
-
-        Folder folder = folderRepository.findById(folderId).orElseThrow();
-
-        return folderMapper.folderToFolderDTO(folder);
-    }
-
-    public FolderDTO saveFolder (String folderId, SaveFolderDTO saveFolderDTO) {
-
-        Folder folder = folderRepository.findById(folderId).orElseThrow();
+    public GroupResponseDTO findByFolderId(String folderId) {
+        Folder folder = folderRepository
+                .findById(folderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Folder not found."));
 
         Organization organization = folder.getOrganization();
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) auth.getPrincipal();
+        User authenticatedUser = authService.getAuthenticatedUser();
 
-        if (!organization.getUser().getId().equals(user.getId())) throw new AccessDeniedException("You do not have permission to edit this resource.");
-
-        folder.setName(saveFolderDTO.name());
-
-        return folderMapper.folderToFolderDTO(folderRepository.save(folder));
-    }
-
-    public void deleteFolder (String folderId) {
-
-        Folder folder = folderRepository.findById(folderId).orElseThrow();
-
-        Organization organization = folder.getOrganization();
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) auth.getPrincipal();
-
-        if (!organization.getUser().getId().equals(user.getId())) throw new AccessDeniedException("You do not have permission to delete this resource.");
-
-        try {
-            folderRepository.deleteById(folderId);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view this folder.");
         }
+
+        return folderMapper.folderToGroupResponseDTO(folder);
+    }
+
+    public GroupResponseDTO updateFolder(String folderId, SaveGroupDTO folderDTO) {
+        Folder folder = folderRepository
+                .findById(folderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Folder not found."));
+
+        Organization organization = folder.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to update this folder.");
+        }
+
+        String name = folderDTO.name().trim();
+
+        folder.setName(name);
+
+        return folderMapper.folderToGroupResponseDTO(folderRepository.save(folder));
+    }
+
+    public List<GroupResponseDTO> addProjectToFolder (String folderId, SaveGroupDTO projectDTO) {
+        Folder folder = folderRepository
+                .findById(folderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Folder not found."));
+
+        Organization organization = folder.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to create a project in this folder.");
+        }
+
+        String name = projectDTO.name().trim();
+
+        Project project = Project.builder()
+                .name(name)
+                .folder(folder)
+                .organization(organization)
+                .owner(authenticatedUser)
+                .build();
+
+        folder.getProjects().add(project);
+        folderRepository.save(folder);
+
+        return folder.getProjects()
+                .stream()
+                .map(projectMapper::projectToGroupResponseDTO)
+                .toList();
+
+    }
+
+    public List<GroupResponseDTO> findProjectsByFolderId (String folderId) {
+        Folder folder = folderRepository
+                .findById(folderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Folder not found."));
+
+        Organization organization = folder.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view projects of this folder.");
+        }
+
+        return folder.getProjects()
+                .stream()
+                .map(projectMapper::projectToGroupResponseDTO)
+                .toList();
+    }
+
+    public GroupAttributesResponseDTO addAttributesToFolder(String folderId,
+                                                          SaveAllGroupAttributesDTO attributesDTO) {
+        Folder folder = folderRepository
+                .findById(folderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Folder not found."));
+
+        Organization organization = folder.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to add attributes in this folder.");
+        }
+
+        List<Attribute> attributes = attributesDTO.attributes()
+                .stream()
+                .map(folderMapper::saveAttributeDTOToAttribute)
+                .toList();
+
+        attributes.forEach(attribute -> attribute.setFolder(folder));
+
+        folder.getAttributes().clear();
+        folder.getAttributes().addAll(attributes);
+
+        return folderMapper.folderToGroupAttributesResponseDTO(
+                folderRepository.save(folder));
+    }
+
+    public GroupAttributesResponseDTO findAttributesByFolderId(String folderId) {
+        Folder folder = folderRepository
+                .findById(folderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Folder not found."));
+
+        Organization organization = folder.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view attributes in this folder.");
+        }
+
+        return folderMapper.folderToGroupAttributesResponseDTO(folder);
+    }
+
+    public List<UserResponseDTO> addMemberToFolder(String folderId, MemberEmailDTO emailDTO) {
+        Folder folder = folderRepository
+                .findById(folderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Folder not found."));
+
+        Organization organization = folder.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to add a member in this folder.");
+        }
+
+        User member = userRepository.findByEmail(emailDTO.email())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+
+        organization.getMembers().add(member);
+
+        return folderMapper.userToUserResponseDTO(organizationRepository
+                .save(organization).getMembers().stream().toList());
+    }
+
+    public List<UserResponseDTO> findMembersByFolderId(String folderId) {
+        Folder folder = folderRepository
+                .findById(folderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Folder not found."));
+
+        Organization organization = folder.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view members in this folder.");
+        }
+
+        return folderMapper.userToUserResponseDTO(organization.getMembers().stream().toList());
+    }
+
+    public void deleteFolder(String folderId) {
+        Folder folder = folderRepository
+                .findById(folderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Folder not found."));
+
+        Organization organization = folder.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to delete this folder.");
+        }
+
+        folderRepository.delete(folder);
     }
 
 }

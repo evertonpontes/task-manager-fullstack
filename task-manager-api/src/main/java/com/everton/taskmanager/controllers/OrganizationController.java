@@ -1,7 +1,7 @@
 package com.everton.taskmanager.controllers;
 
-import com.everton.taskmanager.entities.organization.*;
-import com.everton.taskmanager.services.AttributeService;
+import com.everton.taskmanager.dtos.groups.*;
+import com.everton.taskmanager.dtos.user.UserResponseDTO;
 import com.everton.taskmanager.services.OrganizationService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,39 +18,52 @@ public class OrganizationController {
     @Autowired
     private OrganizationService organizationService;
 
-    @Autowired
-    private AttributeService attributeService;
-
     @PostMapping
-    public ResponseEntity<OrganizationDTO> createOrganization(@RequestBody @Valid CreateOrganizationDTO organization) {
-        return new ResponseEntity<>(organizationService.createOrganization(organization), HttpStatus.CREATED);
+    public ResponseEntity<GroupResponseDTO> createOrganization(@RequestBody @Valid SaveGroupDTO organizationDTO) {
+        return new ResponseEntity<>(organizationService.createOrganization(organizationDTO), HttpStatus.CREATED);
     }
 
     @GetMapping
-    public ResponseEntity<List<OrganizationDTO>> findAllOrganizations() {
-        return new ResponseEntity<>(organizationService.findAllOrganizations(), HttpStatus.OK);
+    public ResponseEntity<List<GroupResponseDTO>> getAllOrganizations() {
+        return  new ResponseEntity<>(organizationService.findAllOrganizations(), HttpStatus.OK);
     }
 
-    @GetMapping("/{organizationId}")
-    public ResponseEntity<OrganizationDTO> findOrganization(@PathVariable("organizationId") String organizationId) {
-        return new ResponseEntity<>(organizationService.findOrganization(organizationId), HttpStatus.OK);
+    @GetMapping("{organizationId}")
+    public ResponseEntity<GroupResponseDTO> getOrganization(@PathVariable("organizationId") String organizationId) {
+        return  new ResponseEntity<>(organizationService.findByOrganizationId(organizationId), HttpStatus.OK);
     }
 
-    @PatchMapping("/{organizationId}")
-    public ResponseEntity<OrganizationDTO> saveOrganization(@PathVariable("organizationId") String organizationId, @RequestBody @Valid SaveOrganizationDTO organization) {
-        return new ResponseEntity<>(organizationService.saveOrganization(organizationId, organization), HttpStatus.OK);
+    @PutMapping("{organizationId}")
+    public ResponseEntity<GroupResponseDTO> updateOrganization(@PathVariable("organizationId") String organizationId,
+                                                                      @RequestBody @Valid SaveGroupDTO organizationDTO) {
+        return new ResponseEntity<>(organizationService.updateOrganization(organizationId, organizationDTO), HttpStatus.OK);
     }
 
-    @PatchMapping("/{organizationId}/attributes")
-    public ResponseEntity<OrganizationAttributesDTO> saveOrganizationAttributes(@PathVariable("organizationId") String organizationId, @RequestBody @Valid SaveOrganizationAttributesDTO attributesDTO) {
-        return new ResponseEntity<>(attributeService.saveOrganizationAttributes(organizationId, attributesDTO), HttpStatus.OK);
+    @PostMapping("{organizationId}/attributes")
+    public ResponseEntity<GroupAttributesResponseDTO> addAttributesToOrganization(@PathVariable("organizationId") String organizationId,
+                                                                                  @RequestBody @Valid SaveAllGroupAttributesDTO attributesDTO) {
+        return new ResponseEntity<>(organizationService.addAttributesToOrganization(organizationId, attributesDTO), HttpStatus.CREATED);
     }
 
-    @DeleteMapping("/{organizationId}")
-    public ResponseEntity<String> deleteOrganization(@PathVariable("organizationId") String organizationId) {
+    @GetMapping("{organizationId}/members")
+    public ResponseEntity<List<UserResponseDTO>> getMembersByOrganization(@PathVariable("organizationId") String organizationId) {
+        return new ResponseEntity<>(organizationService.findMembersByOrganizationId(organizationId), HttpStatus.OK);
+    }
 
+    @PostMapping("{organizationId}/members")
+    public ResponseEntity<List<UserResponseDTO>> addMemberToOrganization(@PathVariable("organizationId") String organizationId,
+                                                                                  @RequestBody @Valid MemberEmailDTO emailDTO) {
+        return new ResponseEntity<>(organizationService.addMemberToOrganization(organizationId, emailDTO), HttpStatus.CREATED);
+    }
+
+    @GetMapping("{organizationId}/attributes")
+    public ResponseEntity<GroupAttributesResponseDTO> getAttributesByOrganization(@PathVariable("organizationId") String organizationId) {
+        return new ResponseEntity<>(organizationService.findAttributesByOrganizationId(organizationId), HttpStatus.OK);
+    }
+
+    @DeleteMapping("{organizationId}")
+    public ResponseEntity<Void> deleteOrganization(@PathVariable("organizationId") String organizationId) {
         organizationService.deleteOrganization(organizationId);
-
-        return new ResponseEntity<String>("Organization deleted successfully.", HttpStatus.OK);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -1,21 +1,16 @@
 package com.everton.taskmanager.services;
 
-import com.everton.taskmanager.entities.attributes.eventType.EventType;
-import com.everton.taskmanager.entities.attributes.taskStatus.TaskStatus;
-import com.everton.taskmanager.entities.attributes.taskType.TaskType;
-import com.everton.taskmanager.entities.organization.CreateOrganizationDTO;
-import com.everton.taskmanager.entities.organization.Organization;
-import com.everton.taskmanager.entities.organization.OrganizationDTO;
-import com.everton.taskmanager.entities.organization.SaveOrganizationDTO;
-import com.everton.taskmanager.entities.user.User;
-import com.everton.taskmanager.exceptions.AlreadyExistsException;
+import com.everton.taskmanager.config.exceptions.ResourceNotFoundException;
+import com.everton.taskmanager.dtos.groups.*;
+import com.everton.taskmanager.dtos.user.UserResponseDTO;
+import com.everton.taskmanager.entities.attributes.Attribute;
+import com.everton.taskmanager.entities.groups.organizations.Organization;
+import com.everton.taskmanager.entities.users.User;
 import com.everton.taskmanager.mapper.OrganizationMapper;
 import com.everton.taskmanager.repositories.OrganizationRepository;
 import com.everton.taskmanager.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,92 +22,159 @@ public class OrganizationService {
     private OrganizationRepository organizationRepository;
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
     private OrganizationMapper organizationMapper;
 
-    public OrganizationDTO createOrganization(CreateOrganizationDTO organization) {
+    @Autowired
+    private AuthService authService;
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) auth.getPrincipal();
+    @Autowired
+    private UserRepository userRepository;
 
-        if (organizationRepository.findOrganizationByUserIdAndName(user.getId(), organization.name()) != null) throw new AlreadyExistsException("This name was already given to another organization.");
+    public GroupResponseDTO createOrganization(SaveGroupDTO organizationDTO) {
+        String name = organizationDTO.name().trim();
 
-        Organization newOrganization = Organization
+        Organization organization = Organization
                 .builder()
-                .name(organization.name())
-                .user(user)
+                .name(name)
+                .owner(authService.getAuthenticatedUser())
                 .build();
 
-        Organization organizationWithAttributes = createAttributesOrganization(organization, newOrganization);
-
-        return organizationMapper.organizationToOrganizationDTO(organizationRepository.save(organizationWithAttributes));
+        return organizationMapper.organizationToGroupResponseDTO(
+                organizationRepository.save(organization)
+        );
     }
 
-    public List<OrganizationDTO> findAllOrganizations () {
+    public List<GroupResponseDTO> findAllOrganizations() {
+        List<Organization> organizations = organizationRepository.findAllByOwnerId(
+                authService.getAuthenticatedUser().getId()
+        );
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = userRepository.findUserByEmail(auth.getName());
-
-        List<Organization> organizations = organizationRepository.findAllOrganizationsByUserId(user.getId());
-
-        return organizations.stream()
-                .map(organization -> organizationMapper.organizationToOrganizationDTO(organization))
+        return organizations
+                .stream()
+                .map(organizationMapper::organizationToGroupResponseDTO)
                 .toList();
     }
 
-    public OrganizationDTO findOrganization (String organizationId) {
+    public GroupResponseDTO findByOrganizationId(String organizationId) {
+        Organization organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
 
-        Organization organization = organizationRepository.findById(organizationId).orElseThrow();
+        User authenticatedUser = authService.getAuthenticatedUser();
 
-        return organizationMapper.organizationToOrganizationDTO(organizationRepository.save(organization));
-    }
-
-    public OrganizationDTO saveOrganization (String organizationId, SaveOrganizationDTO organizationDTO) {
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) auth.getPrincipal();
-
-        Organization organization = organizationRepository.findById(organizationId).orElseThrow();
-
-        if (!organization.getUser().getId().equals(user.getId())) throw new AccessDeniedException("You do not have permission to edit this resource.");
-
-        organization.setName(organizationDTO.name());
-
-        return organizationMapper.organizationToOrganizationDTO(organizationRepository.save(organization));
-    }
-
-    public void deleteOrganization (String organizationId) {
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) auth.getPrincipal();
-
-        Organization organization = organizationRepository.findById(organizationId).orElseThrow();
-
-        if (!organization.getUser().getId().equals(user.getId())) throw new AccessDeniedException("You do not have permission to delete this resource.");
-
-        try {
-            organizationRepository.deleteById(organizationId);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view this organization.");
         }
+
+        return organizationMapper.organizationToGroupResponseDTO(organization);
     }
 
-    private Organization createAttributesOrganization(CreateOrganizationDTO organizationDTO, Organization organization) {
+    public GroupResponseDTO updateOrganization(String organizationId, SaveGroupDTO organizationDTO) {
+        Organization organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
 
-        List<TaskType> taskTypes = organizationMapper.mapCreateAttributeDTOToTaskType(organizationDTO.taskTypes());
-        List<EventType> eventTypes = organizationMapper.mapCreateAttributeDTOToEventType(organizationDTO.eventTypes());
-        List<TaskStatus> taskStatuses = organizationMapper.mapCreateAttributeDTOToTaskStatus(organizationDTO.taskStatuses());
+        User authenticatedUser = authService.getAuthenticatedUser();
 
-        taskTypes.forEach(taskType -> taskType.setOrganization(organization));
-        eventTypes.forEach(eventType -> eventType.setOrganization(organization));
-        taskStatuses.forEach(taskStatus -> taskStatus.setOrganization(organization));
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to update this organization.");
+        }
 
-        organization.setTaskTypes(taskTypes);
-        organization.setEventTypes(eventTypes);
-        organization.setTaskStatuses(taskStatuses);
+        String name = organizationDTO.name().trim();
 
-        return  organization;
+        organization.setName(name);
+
+        return organizationMapper.organizationToGroupResponseDTO(
+                organizationRepository.save(organization)
+        );
     }
+
+    public GroupAttributesResponseDTO addAttributesToOrganization(String organizationId,
+                                                                  SaveAllGroupAttributesDTO attributesDTO) {
+        Organization organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to add attributes in this organization.");
+        }
+
+        List<Attribute> attributes = attributesDTO.attributes()
+                .stream()
+                .map(organizationMapper::saveAttributeDTOToAttribute)
+                .toList();
+
+        attributes.forEach(attribute -> attribute.setOrganization(organization));
+
+        organization.getAttributes().clear();
+        organization.getAttributes().addAll(attributes);
+
+        return organizationMapper.organizationToGroupAttributesResponseDTO(
+                organizationRepository.save(organization));
+    }
+
+    public GroupAttributesResponseDTO findAttributesByOrganizationId(String organizationId) {
+        Organization organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view attributes in this organization.");
+        }
+
+        return organizationMapper.organizationToGroupAttributesResponseDTO(organization);
+    }
+
+    public List<UserResponseDTO> addMemberToOrganization(String organizationId, MemberEmailDTO emailDTO) {
+        Organization organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to add a member in this organization.");
+        }
+
+        User member = userRepository.findByEmail(emailDTO.email())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+
+        organization.getMembers().add(member);
+
+        return organizationMapper.userToUserResponseDTO(organizationRepository
+                .save(organization).getMembers().stream().toList());
+    }
+
+    public List<UserResponseDTO> findMembersByOrganizationId(String organizationId) {
+        Organization organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view members in this organization.");
+        }
+
+        return organizationMapper.userToUserResponseDTO(organization.getMembers().stream().toList());
+    }
+
+    public void deleteOrganization(String organizationId) {
+        Organization organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to delete this organization.");
+        }
+
+        organizationRepository.delete(organization);
+    }
+
 }

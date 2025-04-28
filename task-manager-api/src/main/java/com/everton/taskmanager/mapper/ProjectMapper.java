@@ -1,14 +1,14 @@
 package com.everton.taskmanager.mapper;
 
-import com.everton.taskmanager.entities.attributes.AttributeDTO;
-import com.everton.taskmanager.entities.attributes.CreateAttributeDTO;
-import com.everton.taskmanager.entities.attributes.eventType.EventType;
-import com.everton.taskmanager.entities.attributes.taskStatus.TaskStatus;
-import com.everton.taskmanager.entities.attributes.taskType.TaskType;
-import com.everton.taskmanager.entities.teams.Team;
-import com.everton.taskmanager.entities.teams.TeamAttributesDTO;
-import com.everton.taskmanager.entities.teams.TeamDTO;
-import org.mapstruct.IterableMapping;
+import com.everton.taskmanager.dtos.attribute.AttributeResponseDTO;
+import com.everton.taskmanager.dtos.attribute.SaveAttributeDTO;
+import com.everton.taskmanager.dtos.groups.GroupAttributesResponseDTO;
+import com.everton.taskmanager.dtos.groups.GroupResponseDTO;
+import com.everton.taskmanager.dtos.user.UserResponseDTO;
+import com.everton.taskmanager.entities.attributes.Attribute;
+import com.everton.taskmanager.entities.attributes.AttributeTypeEnum;
+import com.everton.taskmanager.entities.groups.projects.Project;
+import com.everton.taskmanager.entities.users.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -17,61 +17,46 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface ProjectMapper {
+    public GroupResponseDTO projectToGroupResponseDTO(Project project);
 
-    @Mapping(target = "taskTypes", qualifiedByName = "mapTaskTypeToAttributeDTO")
-    @Mapping(target = "eventTypes", qualifiedByName = "mapEventTypeToAttributeDTO")
-    @Mapping(target = "taskStatuses", qualifiedByName = "mapTaskStatusToAttributeDTO")
-    TeamDTO teamToTeamDTO(Team team);
+    public Attribute saveAttributeDTOToAttribute(SaveAttributeDTO attributeDTO);
 
-    @Mapping(target = "taskTypes", qualifiedByName = "mapTaskTypeToAttributeDTO")
-    @Mapping(target = "eventTypes", qualifiedByName = "mapEventTypeToAttributeDTO")
-    @Mapping(target = "taskStatuses", qualifiedByName = "mapTaskStatusToAttributeDTO")
-    TeamAttributesDTO teamToTeamAttributesDTO (Team team);
+    @Mapping(target = "taskTypes", source = "attributes", qualifiedByName = "mapTaskType")
+    @Mapping(target = "eventTypes", source = "attributes", qualifiedByName = "mapEventType")
+    @Mapping(target = "taskStatuses", source = "attributes", qualifiedByName = "mapTaskStatus")
+    public GroupAttributesResponseDTO projectToGroupAttributesResponseDTO(Project project);
 
-    // ------------- TASK TYPE ------------------
+    default AttributeResponseDTO attributeToAttributesResponseDTO(Attribute attribute) {
+        return new AttributeResponseDTO(
+                attribute.getId(),
+                attribute.getName(),
+                attribute.getColor()
+        );
+    }
 
-    @Named("mapTaskTypeToAttributeDTO")
-    @IterableMapping(qualifiedByName = "mapTaskTypeToAttributeDTO")
-    List<AttributeDTO> mapTaskTypeToAttributeDTO (List<TaskType> taskTypes);
+    @Named("mapTaskType")
+    default List<AttributeResponseDTO> mapTaskTypes(List<Attribute> attributes) {
+        return attributes.stream()
+                .filter(attribute -> AttributeTypeEnum.TASK_TYPE.equals(attribute.getType()))
+                .map(this::attributeToAttributesResponseDTO)
+                .toList();
+    }
 
-    @Named("mapTaskTypeToAttributeDTO")
-    AttributeDTO mapTaskTypeToAttributeDTO (TaskType taskType);
+    @Named("mapEventType")
+    default List<AttributeResponseDTO> mapEventTypes(List<Attribute> attributes) {
+        return attributes.stream()
+                .filter(attribute -> AttributeTypeEnum.EVENT_TYPE.equals(attribute.getType()))
+                .map(this::attributeToAttributesResponseDTO)
+                .toList();
+    }
 
-    // -------------- EVENT TYPE -----------------
+    @Named("mapTaskStatus")
+    default List<AttributeResponseDTO> mapTaskStatuses(List<Attribute> attributes) {
+        return attributes.stream()
+                .filter(attribute -> AttributeTypeEnum.TASK_STATUS.equals(attribute.getType()))
+                .map(this::attributeToAttributesResponseDTO)
+                .toList();
+    }
 
-    @Named("mapEventTypeToAttributeDTO")
-    @IterableMapping(qualifiedByName = "mapEventTypeToAttributeDTO")
-    List<AttributeDTO> mapEventTypeToAttributeDTO (List<EventType> eventTypes);
-
-    @Named("mapEventTypeToAttributeDTO")
-    AttributeDTO mapEventTypeToAttributeDTO (EventType eventType);
-
-    // ------------- TASK STATUS ----------------
-
-    @Named("mapTaskStatusToAttributeDTO")
-    @IterableMapping(qualifiedByName = "mapTaskStatusToAttributeDTO")
-    List<AttributeDTO> mapTaskStatusToAttributeDTO (List<TaskStatus> taskStatuses);
-
-    @Named("mapTaskStatusToAttributeDTO")
-    AttributeDTO mapTaskStatusToAttributeDTO (TaskStatus taskStatus);
-
-    // -------------------------------------------
-
-    @IterableMapping(qualifiedByName = "mapCreateAttributeDTOToTaskType")
-    List<TaskType> mapCreateAttributeDTOToTaskType (List<CreateAttributeDTO> createAttributeDTOS);
-
-    @Named("mapCreateAttributeDTOToTaskType")
-    TaskType mapCreateAttributeDTOToTaskType(CreateAttributeDTO createAttributeDTO);
-
-    @IterableMapping(qualifiedByName = "mapCreateAttributeDTOToEventType")
-    List<EventType> mapCreateAttributeDTOToEventType (List<CreateAttributeDTO> createAttributeDTOS);
-
-    @Named("mapCreateAttributeDTOToEventType")
-    EventType mapCreateAttributeDTOToEventType(CreateAttributeDTO createAttributeDTO);
-
-    @IterableMapping(qualifiedByName = "mapCreateAttributeDTOToTaskStatus")
-    List<TaskStatus> mapCreateAttributeDTOToTaskStatus (List<CreateAttributeDTO> createAttributeDTOS);
-
-    @Named("mapCreateAttributeDTOToTaskStatus")
-    TaskStatus mapCreateAttributeDTOToTaskStatus(CreateAttributeDTO createAttributeDTO);
+    public List<UserResponseDTO> userToUserResponseDTO(List<User> users);
 }

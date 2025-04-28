@@ -1,11 +1,7 @@
 package com.everton.taskmanager.controllers;
 
-import com.everton.taskmanager.entities.projects.CreateFolderDTO;
-import com.everton.taskmanager.entities.projects.Folder;
-import com.everton.taskmanager.entities.projects.FolderDTO;
-import com.everton.taskmanager.entities.projects.SaveFolderDTO;
-import com.everton.taskmanager.entities.teams.*;
-import com.everton.taskmanager.services.AttributeService;
+import com.everton.taskmanager.dtos.groups.*;
+import com.everton.taskmanager.dtos.user.UserResponseDTO;
 import com.everton.taskmanager.services.FolderService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,32 +18,64 @@ public class FolderController {
     @Autowired
     private FolderService folderService;
 
-
     @PostMapping
-    public ResponseEntity<FolderDTO> createFolder(@PathVariable("organizationId") String organizationId, @RequestBody @Valid CreateFolderDTO folder) {
-        return new ResponseEntity<>(folderService.createFolder(organizationId, folder), HttpStatus.CREATED);
+    public ResponseEntity<GroupResponseDTO> createFolder(@PathVariable("organizationId") String organizationId,
+                                                         @RequestBody @Valid SaveGroupDTO folderDTO) {
+        return new ResponseEntity<>(folderService.createFolder(organizationId, folderDTO), HttpStatus.CREATED);
     }
 
     @GetMapping
-    public ResponseEntity<List<FolderDTO>> findAllFolders(@PathVariable("organizationId") String organizationId) {
-        return new ResponseEntity<>(folderService.findAllFolders(organizationId), HttpStatus.OK);
+    public ResponseEntity<List<GroupResponseDTO>> getAllFolderByOrganizationId(@PathVariable("organizationId") String organizationId) {
+        return  new ResponseEntity<>(folderService.findAllFoldersByOrganizationId(organizationId), HttpStatus.OK);
     }
 
-    @GetMapping("/{folderId}")
-    public ResponseEntity<FolderDTO> findFolder(@PathVariable("folderId") String folderId) {
-        return new ResponseEntity<>(folderService.findFolderById(folderId), HttpStatus.OK);
+    @GetMapping("{folderId}")
+    public ResponseEntity<GroupResponseDTO> getFolder(@PathVariable("folderId") String folderId) {
+        return  new ResponseEntity<>(folderService.findByFolderId(folderId), HttpStatus.OK);
     }
 
-    @PatchMapping("/{folderId}")
-    public ResponseEntity<FolderDTO> saveFolder(@PathVariable("folderId") String folderId, @RequestBody @Valid SaveFolderDTO folder) {
-        return new ResponseEntity<>(folderService.saveFolder(folderId, folder), HttpStatus.OK);
+    @PutMapping("{folderId}")
+    public ResponseEntity<GroupResponseDTO> updateFolder(@PathVariable("folderId") String folderId,
+                                                          @RequestBody @Valid SaveGroupDTO folderDTO) {
+        return new ResponseEntity<>(folderService.updateFolder(folderId, folderDTO), HttpStatus.OK);
     }
 
-    @DeleteMapping("/{folderId}")
-    public ResponseEntity<String> deleteFolder(@PathVariable("folderId") String folderId) {
+    @PostMapping("{folderId}/projects")
+    public ResponseEntity<List<GroupResponseDTO>> addProjectToFolder(@PathVariable("folderId") String folderId,
+                                                                       @RequestBody @Valid SaveGroupDTO projectDTO) {
+        return  new ResponseEntity<>(folderService.addProjectToFolder(folderId, projectDTO), HttpStatus.CREATED);
+    }
 
+    @GetMapping("{folderId}/projects")
+    public ResponseEntity<List<GroupResponseDTO>> getProjectsByFolder(@PathVariable("folderId") String folderId) {
+        return  new ResponseEntity<>(folderService.findProjectsByFolderId(folderId), HttpStatus.OK);
+    }
+
+    @PostMapping("{folderId}/attributes")
+    public ResponseEntity<GroupAttributesResponseDTO> addAttributesToFolder(@PathVariable("folderId") String folderId,
+                                                                                  @RequestBody @Valid SaveAllGroupAttributesDTO attributesDTO) {
+        return new ResponseEntity<>(folderService.addAttributesToFolder(folderId, attributesDTO), HttpStatus.CREATED);
+    }
+
+    @GetMapping("{folderId}/attributes")
+    public ResponseEntity<GroupAttributesResponseDTO> getAttributesByFolder(@PathVariable("folderId") String folderId) {
+        return new ResponseEntity<>(folderService.findAttributesByFolderId(folderId), HttpStatus.OK);
+    }
+
+    @PostMapping("{folderId}/members")
+    public ResponseEntity<List<UserResponseDTO>> addMemberToFolder(@PathVariable("folderId") String folderId,
+                                                                   @RequestBody @Valid MemberEmailDTO emailDTO) {
+        return new ResponseEntity<>(folderService.addMemberToFolder(folderId, emailDTO), HttpStatus.CREATED);
+    }
+
+    @GetMapping("{folderId}/members")
+    public ResponseEntity<List<UserResponseDTO>> getMembersByFolder(@PathVariable("folderId") String folderId) {
+        return new ResponseEntity<>(folderService.findMembersByFolderId(folderId), HttpStatus.OK);
+    }
+
+    @DeleteMapping("{folderId}")
+    public ResponseEntity<Void> deleteFolder(@PathVariable("folderId") String folderId) {
         folderService.deleteFolder(folderId);
-
-        return new ResponseEntity<String>("Folder deleted successfully.", HttpStatus.OK);
+        return ResponseEntity.noContent().build();
     }
 }

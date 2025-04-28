@@ -1,10 +1,7 @@
 package com.everton.taskmanager.repositories;
 
-import com.everton.taskmanager.entities.projects.Folder;
+import com.everton.taskmanager.entities.groups.folders.Folder;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
-@Repository
 public interface FolderRepository extends JpaRepository<Folder, String> {
-
 }

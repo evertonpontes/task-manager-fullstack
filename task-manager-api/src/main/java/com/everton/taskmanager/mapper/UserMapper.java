@@ -1,11 +1,15 @@
 package com.everton.taskmanager.mapper;
 
-import com.everton.taskmanager.entities.user.RecoveryUserDTO;
-import com.everton.taskmanager.entities.user.User;
+import com.everton.taskmanager.dtos.user.CreateUserDTO;
+import com.everton.taskmanager.dtos.user.UserResponseDTO;
+import com.everton.taskmanager.entities.users.User;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
-    RecoveryUserDTO userToRecoveryUserDTO(User user);
+    public User createUserDTOToUser(CreateUserDTO userDTO);
+
+    public UserResponseDTO userToUserResponseDTO(User user);
+
 }

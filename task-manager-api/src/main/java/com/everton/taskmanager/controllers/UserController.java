@@ -1,9 +1,9 @@
 package com.everton.taskmanager.controllers;
 
-import com.everton.taskmanager.entities.user.LoginUserDTO;
-import com.everton.taskmanager.entities.user.RecoveryJwtTokenDTO;
-import com.everton.taskmanager.entities.user.RecoveryUserDTO;
-import com.everton.taskmanager.entities.user.UserToRegisterDTO;
+import com.everton.taskmanager.dtos.user.CreateUserDTO;
+import com.everton.taskmanager.dtos.user.LoginDTO;
+import com.everton.taskmanager.dtos.user.TokenDTO;
+import com.everton.taskmanager.dtos.user.UserResponseDTO;
 import com.everton.taskmanager.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,12 +22,12 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("login")
-    public ResponseEntity<RecoveryJwtTokenDTO> login(@RequestBody @Valid LoginUserDTO loginUserDTO) {
-        return new ResponseEntity<>(userService.authenticateUser(loginUserDTO), HttpStatus.OK);
+    public ResponseEntity<TokenDTO> login(@RequestBody @Valid LoginDTO loginDTO) {
+        return new ResponseEntity<>(userService.authenticateUser(loginDTO), HttpStatus.OK);
     }
 
     @PostMapping("register")
-    public ResponseEntity<RecoveryUserDTO> register(@RequestBody @Valid UserToRegisterDTO userToCreateDTO) {
-        return new ResponseEntity<>(userService.createUser(userToCreateDTO), HttpStatus.CREATED);
+    public ResponseEntity<UserResponseDTO> register(@RequestBody @Valid CreateUserDTO userDTO) {
+        return new ResponseEntity<>(userService.createUser(userDTO), HttpStatus.CREATED);
     }
 }

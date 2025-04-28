@@ -1,111 +1,217 @@
 package com.everton.taskmanager.services;
 
-import com.everton.taskmanager.entities.attributes.eventType.EventType;
-import com.everton.taskmanager.entities.attributes.taskStatus.TaskStatus;
-import com.everton.taskmanager.entities.attributes.taskType.TaskType;
-import com.everton.taskmanager.entities.organization.Organization;
-import com.everton.taskmanager.entities.teams.CreateTeamDTO;
-import com.everton.taskmanager.entities.teams.SaveTeamDTO;
-import com.everton.taskmanager.entities.teams.Team;
-import com.everton.taskmanager.entities.teams.TeamDTO;
-import com.everton.taskmanager.entities.user.User;
-import com.everton.taskmanager.mapper.TeamMapper;
+import com.everton.taskmanager.config.exceptions.ResourceNotFoundException;
+import com.everton.taskmanager.dtos.groups.*;
+import com.everton.taskmanager.dtos.user.UserResponseDTO;
+import com.everton.taskmanager.entities.attributes.Attribute;
+import com.everton.taskmanager.entities.groups.folders.Folder;
+import com.everton.taskmanager.entities.groups.organizations.Organization;
+import com.everton.taskmanager.entities.groups.projects.Project;
+import com.everton.taskmanager.entities.users.User;
+import com.everton.taskmanager.mapper.ProjectMapper;
 import com.everton.taskmanager.repositories.OrganizationRepository;
-import com.everton.taskmanager.repositories.TeamRepository;
+import com.everton.taskmanager.repositories.ProjectRepository;
+import com.everton.taskmanager.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class ProjectService {
 
     @Autowired
-    private TeamRepository teamRepository;
-
-    @Autowired
     private OrganizationRepository organizationRepository;
 
     @Autowired
-    private TeamMapper teamMapper;
+    private ProjectRepository projectRepository;
 
-    public TeamDTO createTeam(String organizationId, CreateTeamDTO createTeamDTO) {
+    @Autowired
+    private ProjectMapper projectMapper;
 
-        Organization organization = organizationRepository.findById(organizationId).orElseThrow();
+    @Autowired
+    private AuthService authService;
 
-        Team newTeam = Team.builder()
-                .name(createTeamDTO.name())
+    @Autowired
+    private UserRepository userRepository;
+
+    public GroupResponseDTO createProject(String organizationId, SaveGroupDTO projectDTO) {
+        Organization organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
+
+        String name = projectDTO.name().trim();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to create a project in this organization.");
+        }
+
+        Project project = Project
+                .builder()
+                .name(name)
+                .owner(authenticatedUser)
                 .organization(organization)
                 .build();
 
-        Team teamWithAttributes = createAttributesTeam(createTeamDTO, newTeam);
-
-        return teamMapper.teamToTeamDTO(teamRepository.save(teamWithAttributes));
+        return projectMapper.projectToGroupResponseDTO(
+                projectRepository.save(project)
+        );
     }
 
-    public List<TeamDTO> findAllTeams (String organizationId) {
+    public List<GroupResponseDTO> findAllProjectsByOrganizationId(String organizationId) {
+        Organization organization = organizationRepository
+                .findById(organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
 
-        Organization organization = organizationRepository.findById(organizationId).orElseThrow();
+        User authenticatedUser = authService.getAuthenticatedUser();
 
-        return organization.getTeams().stream()
-                .map(team -> teamMapper.teamToTeamDTO(team))
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view projects of this organization");
+        }
+
+        Set<Project> projects = organization.getProjects();
+
+        return projects
+                .stream()
+                .map(projectMapper::projectToGroupResponseDTO)
                 .toList();
     }
 
-    public TeamDTO findTeamById (String teamId) {
+    public GroupResponseDTO findByProjectId(String projectId) {
+        Project project = projectRepository
+                .findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
 
-        Team team = teamRepository.findById(teamId).orElseThrow();
+        Organization organization = project.getOrganization();
 
-        return teamMapper.teamToTeamDTO(team);
-    }
+        User authenticatedUser = authService.getAuthenticatedUser();
 
-    public TeamDTO saveTeam (String teamId, SaveTeamDTO saveTeamDTO) {
-
-        Team team = teamRepository.findById(teamId).orElseThrow();
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) auth.getPrincipal();
-
-        if (!user.getOwnedOrganizations().contains(team.getOrganization())) throw new AccessDeniedException("You do not have permission to edit this resource.");
-
-        team.setName(saveTeamDTO.name());
-
-        return teamMapper.teamToTeamDTO(teamRepository.save(team));
-    }
-
-    public void deleteTeam (String teamId) {
-
-        Team team = teamRepository.findById(teamId).orElseThrow();
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) auth.getPrincipal();
-
-        if (!user.getOwnedOrganizations().contains(team.getOrganization())) throw new AccessDeniedException("You do not have permission to delete this resource.");
-
-        try {
-            teamRepository.deleteById(teamId);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view this project.");
         }
+
+        return projectMapper.projectToGroupResponseDTO(project);
     }
 
-    private Team createAttributesTeam(CreateTeamDTO createTeamDTO, Team team) {
+    public GroupResponseDTO updateProject(String projectId, SaveGroupDTO projectDTO) {
+        Project project = projectRepository
+                .findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
 
-        List<TaskType> taskTypes = teamMapper.mapCreateAttributeDTOToTaskType(createTeamDTO.taskTypes());
-        List<EventType> eventTypes = teamMapper.mapCreateAttributeDTOToEventType(createTeamDTO.eventTypes());
-        List<TaskStatus> taskStatuses = teamMapper.mapCreateAttributeDTOToTaskStatus(createTeamDTO.taskStatuses());
+        Organization organization = project.getOrganization();
 
-        taskTypes.forEach(taskType -> taskType.setTeam(team));
-        eventTypes.forEach(eventType -> eventType.setTeam(team));
-        taskStatuses.forEach(taskStatus -> taskStatus.setTeam(team));
+        User authenticatedUser = authService.getAuthenticatedUser();
 
-        team.setTaskTypes(taskTypes);
-        team.setEventTypes(eventTypes);
-        team.setTaskStatuses(taskStatuses);
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to update this project.");
+        }
 
-        return  team;
+        String name = projectDTO.name().trim();
+
+        project.setName(name);
+
+        return projectMapper.projectToGroupResponseDTO(projectRepository.save(project));
+    }
+
+    public GroupAttributesResponseDTO addAttributesToProject(String projectId,
+                                                            SaveAllGroupAttributesDTO attributesDTO) {
+        Project project = projectRepository
+                .findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
+
+        Organization organization = project.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to add attributes in this project.");
+        }
+
+        List<Attribute> attributes = attributesDTO.attributes()
+                .stream()
+                .map(projectMapper::saveAttributeDTOToAttribute)
+                .toList();
+
+        attributes.forEach(attribute -> attribute.setProject(project));
+
+        project.getAttributes().clear();
+        project.getAttributes().addAll(attributes);
+
+        return projectMapper.projectToGroupAttributesResponseDTO(
+                projectRepository.save(project));
+    }
+
+    public GroupAttributesResponseDTO findAttributesByProjectId(String projectId) {
+        Project project = projectRepository
+                .findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
+
+        Organization organization = project.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view attributes in this project.");
+        }
+
+        return projectMapper.projectToGroupAttributesResponseDTO(project);
+    }
+
+    public List<UserResponseDTO> addMemberToProject(String projectId, MemberEmailDTO emailDTO) {
+        Project project = projectRepository
+                .findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
+
+        Organization organization = project.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to add a member in this project.");
+        }
+
+        User member = userRepository.findByEmail(emailDTO.email())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+
+        organization.getMembers().add(member);
+
+        return projectMapper.userToUserResponseDTO(organizationRepository
+                .save(organization).getMembers().stream().toList());
+    }
+
+    public List<UserResponseDTO> findMembersByProjectId(String projectId) {
+        Project project = projectRepository
+                .findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
+
+        Organization organization = project.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.hasAccess(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to view members in this project.");
+        }
+
+        return projectMapper.userToUserResponseDTO(organization.getMembers().stream().toList());
+    }
+
+    public void deleteProject(String projectId) {
+        Project project = projectRepository
+                .findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
+
+        Organization organization = project.getOrganization();
+
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        if (!organization.isOwner(authenticatedUser)) {
+            throw new AccessDeniedException("You do not have permission to delete this project.");
+        }
+
+        projectRepository.delete(project);
     }
 }
