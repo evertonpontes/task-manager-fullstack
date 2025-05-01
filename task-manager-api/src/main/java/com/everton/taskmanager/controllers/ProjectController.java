@@ -1,8 +1,11 @@
 package com.everton.taskmanager.controllers;
 
 import com.everton.taskmanager.dtos.groups.*;
+import com.everton.taskmanager.dtos.task.SaveTaskDTO;
+import com.everton.taskmanager.dtos.task.TaskResponseDTO;
 import com.everton.taskmanager.dtos.user.UserResponseDTO;
 import com.everton.taskmanager.services.ProjectService;
+import com.everton.taskmanager.services.TaskService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,6 +20,9 @@ public class ProjectController {
 
     @Autowired
     private ProjectService projectService;
+
+    @Autowired
+    private TaskService taskService;
 
     @PostMapping
     public ResponseEntity<GroupResponseDTO> createProject(@PathVariable("organizationId") String organizationId,
@@ -52,14 +58,25 @@ public class ProjectController {
     }
 
     @PostMapping("{projectId}/members")
-    public ResponseEntity<List<UserResponseDTO>> addMemberToProject(@PathVariable("projectId") String projectId,
+    public ResponseEntity<List<GroupMemberResponseDTO>> addMemberToProject(@PathVariable("projectId") String projectId,
                                                                     @RequestBody @Valid MemberEmailDTO emailDTO) {
         return new ResponseEntity<>(projectService.addMemberToProject(projectId, emailDTO), HttpStatus.CREATED);
     }
 
     @GetMapping("{projectId}/members")
-    public ResponseEntity<List<UserResponseDTO>> getMembersByProject(@PathVariable("projectId") String projectId) {
+    public ResponseEntity<List<GroupMemberResponseDTO>> getMembersByProject(@PathVariable("projectId") String projectId) {
         return new ResponseEntity<>(projectService.findMembersByProjectId(projectId), HttpStatus.OK);
+    }
+
+    @PostMapping("{projectId}/tasks")
+    public ResponseEntity<TaskResponseDTO> createTaskInProject(@PathVariable("projectId") String projectId,
+                                                            @RequestBody @Valid SaveTaskDTO taskDTO) {
+        return new ResponseEntity<>(taskService.createTaskInProject(projectId, taskDTO), HttpStatus.CREATED);
+    }
+
+    @GetMapping("{projectId}/tasks")
+    public ResponseEntity<List<TaskResponseDTO>> getTasksInProject(@PathVariable("projectId") String projectId) {
+        return new ResponseEntity<>(taskService.findAllTasksInProject(projectId), HttpStatus.OK);
     }
 
     @DeleteMapping("{projectId}")

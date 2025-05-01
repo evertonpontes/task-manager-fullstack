@@ -35,10 +35,10 @@ public class Attribute {
     private Team team;
 
     @ManyToOne
-    @JoinColumn(name = "project_id")
-    private Project project;
-
-    @ManyToOne
     @JoinColumn(name = "folder_id")
     private Folder folder;
+
+    @ManyToOne
+    @JoinColumn(name = "project_id")
+    private Project project;
 }

@@ -4,9 +4,12 @@ import com.everton.taskmanager.config.exceptions.ResourceNotFoundException;
 import com.everton.taskmanager.dtos.groups.*;
 import com.everton.taskmanager.dtos.user.UserResponseDTO;
 import com.everton.taskmanager.entities.attributes.Attribute;
-import com.everton.taskmanager.entities.groups.folders.Folder;
+import com.everton.taskmanager.entities.groups.GroupMember;
+import com.everton.taskmanager.entities.groups.GroupMemberId;
 import com.everton.taskmanager.entities.groups.organizations.Organization;
+import com.everton.taskmanager.entities.groups.organizations.OrganizationMember;
 import com.everton.taskmanager.entities.groups.projects.Project;
+import com.everton.taskmanager.entities.groups.projects.ProjectMember;
 import com.everton.taskmanager.entities.users.User;
 import com.everton.taskmanager.mapper.ProjectMapper;
 import com.everton.taskmanager.repositories.OrganizationRepository;
@@ -50,11 +53,14 @@ public class ProjectService {
             throw new AccessDeniedException("You do not have permission to create a project in this organization.");
         }
 
+        Double sortIndex = projectRepository.findMaxSortIndexByGroupId(organizationId);
+
         Project project = Project
                 .builder()
                 .name(name)
                 .owner(authenticatedUser)
                 .organization(organization)
+                .sortIndex(sortIndex)
                 .build();
 
         return projectMapper.projectToGroupResponseDTO(
@@ -161,7 +167,7 @@ public class ProjectService {
         return projectMapper.projectToGroupAttributesResponseDTO(project);
     }
 
-    public List<UserResponseDTO> addMemberToProject(String projectId, MemberEmailDTO emailDTO) {
+    public List<GroupMemberResponseDTO> addMemberToProject(String projectId, MemberEmailDTO emailDTO) {
         Project project = projectRepository
                 .findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
@@ -174,16 +180,26 @@ public class ProjectService {
             throw new AccessDeniedException("You do not have permission to add a member in this project.");
         }
 
+        Double sortIndex = projectRepository.findMaxSortIndexByGroupId(projectId);
+
         User member = userRepository.findByEmail(emailDTO.email())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found."));
 
-        organization.getMembers().add(member);
+        ProjectMember projectMember = new ProjectMember();
+        GroupMemberId id = new GroupMemberId(member.getId(), projectId);
 
-        return projectMapper.userToUserResponseDTO(organizationRepository
-                .save(organization).getMembers().stream().toList());
+        projectMember.setId(id);
+        projectMember.setGroup(project);
+        projectMember.setMember(member);
+        projectMember.setSortIndex(sortIndex + 1);
+
+        project.getMembers().add(projectMember);
+
+        return projectMapper.groupMemberToGroupMemberDTO(projectRepository
+                .save(project).getMembers());
     }
 
-    public List<UserResponseDTO> findMembersByProjectId(String projectId) {
+    public List<GroupMemberResponseDTO> findMembersByProjectId(String projectId) {
         Project project = projectRepository
                 .findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found."));
@@ -196,7 +212,7 @@ public class ProjectService {
             throw new AccessDeniedException("You do not have permission to view members in this project.");
         }
 
-        return projectMapper.userToUserResponseDTO(organization.getMembers().stream().toList());
+        return projectMapper.groupMemberToGroupMemberDTO(project.getMembers());
     }
 
     public void deleteProject(String projectId) {

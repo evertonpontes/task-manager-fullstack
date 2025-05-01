@@ -4,8 +4,12 @@ import com.everton.taskmanager.config.exceptions.ResourceNotFoundException;
 import com.everton.taskmanager.dtos.groups.*;
 import com.everton.taskmanager.dtos.user.UserResponseDTO;
 import com.everton.taskmanager.entities.attributes.Attribute;
+import com.everton.taskmanager.entities.groups.GroupMember;
+import com.everton.taskmanager.entities.groups.GroupMemberId;
 import com.everton.taskmanager.entities.groups.organizations.Organization;
+import com.everton.taskmanager.entities.groups.organizations.OrganizationMember;
 import com.everton.taskmanager.entities.groups.teams.Team;
+import com.everton.taskmanager.entities.groups.teams.TeamMember;
 import com.everton.taskmanager.entities.users.User;
 import com.everton.taskmanager.mapper.TeamMapper;
 import com.everton.taskmanager.repositories.OrganizationRepository;
@@ -49,11 +53,14 @@ public class TeamService {
             throw new AccessDeniedException("You do not have permission to create a team in this organization.");
         }
 
+        Double sortIndex = teamRepository.findMaxSortIndexByGroupId(organizationId);
+
         Team team = Team
                 .builder()
                 .name(name)
                 .owner(authenticatedUser)
                 .organization(organization)
+                .sortIndex(sortIndex + 1)
                 .build();
 
         return teamMapper.teamToGroupResponseDTO(
@@ -173,13 +180,26 @@ public class TeamService {
             throw new AccessDeniedException("You do not have permission to add a member in this team.");
         }
 
+        Double sortIndex = teamRepository.findMaxSortIndexByGroupId(teamId);
+
         User member = userRepository.findByEmail(emailDTO.email())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found."));
 
-        organization.getMembers().add(member);
+        TeamMember teamMember = new TeamMember();
+        GroupMemberId id = new GroupMemberId(member.getId(), teamId);
+
+        teamMember.setId(id);
+        teamMember.setGroup(team);
+        teamMember.setMember(member);
+        teamMember.setSortIndex(sortIndex + 1);
+
+        team.getMembers().add(teamMember);
 
         return teamMapper.userToUserResponseDTO(organizationRepository
-                .save(organization).getMembers().stream().toList());
+                .save(organization).getMembers()
+                .stream()
+                .map(GroupMember::getMember)
+                .toList());
     }
 
     public List<UserResponseDTO> findMembersByTeamId(String teamId) {
@@ -195,7 +215,9 @@ public class TeamService {
             throw new AccessDeniedException("You do not have permission to view members in this team.");
         }
 
-        return teamMapper.userToUserResponseDTO(organization.getMembers().stream().toList());
+        return teamMapper.userToUserResponseDTO(organization.getMembers().stream()
+                .map(GroupMember::getMember)
+                .toList());
     }
 
     public void deleteTeam(String teamId) {

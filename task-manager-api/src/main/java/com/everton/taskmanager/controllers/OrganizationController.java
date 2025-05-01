@@ -46,12 +46,12 @@ public class OrganizationController {
     }
 
     @GetMapping("{organizationId}/members")
-    public ResponseEntity<List<UserResponseDTO>> getMembersByOrganization(@PathVariable("organizationId") String organizationId) {
+    public ResponseEntity<List<GroupMemberResponseDTO>> getMembersByOrganization(@PathVariable("organizationId") String organizationId) {
         return new ResponseEntity<>(organizationService.findMembersByOrganizationId(organizationId), HttpStatus.OK);
     }
 
     @PostMapping("{organizationId}/members")
-    public ResponseEntity<List<UserResponseDTO>> addMemberToOrganization(@PathVariable("organizationId") String organizationId,
+    public ResponseEntity<List<GroupMemberResponseDTO>> addMemberToOrganization(@PathVariable("organizationId") String organizationId,
                                                                                   @RequestBody @Valid MemberEmailDTO emailDTO) {
         return new ResponseEntity<>(organizationService.addMemberToOrganization(organizationId, emailDTO), HttpStatus.CREATED);
     }

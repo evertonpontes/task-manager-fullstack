@@ -2,27 +2,29 @@ package com.everton.taskmanager.entities.users;
 
 import com.everton.taskmanager.entities.groups.folders.Folder;
 import com.everton.taskmanager.entities.groups.organizations.Organization;
+import com.everton.taskmanager.entities.groups.organizations.OrganizationMember;
 import com.everton.taskmanager.entities.groups.projects.Project;
+import com.everton.taskmanager.entities.groups.projects.ProjectMember;
 import com.everton.taskmanager.entities.groups.teams.Team;
+import com.everton.taskmanager.entities.groups.teams.TeamMember;
+import com.everton.taskmanager.entities.tasks.SubTask;
+import com.everton.taskmanager.entities.tasks.Task;
+import com.everton.taskmanager.entities.tasks.tasktiming.LoggedTime;
+import com.everton.taskmanager.entities.tasks.tasktiming.ScheduledWork;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 
 @Entity
 @Table(name = "users")
-@EntityListeners(AuditingEntityListener.class)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
@@ -46,19 +48,25 @@ public class User {
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<Project> ownedProjects;
 
-    @ManyToMany(mappedBy = "members")
-    private Set<Organization> organizations;
+    @OneToMany(mappedBy = "member")
+    private Set<OrganizationMember> organizations;
 
-    @ManyToMany(mappedBy = "members")
-    private Set<Project> projects;
+    @OneToMany(mappedBy = "member")
+    private Set<ProjectMember> projects;
 
-    @ManyToMany(mappedBy = "members")
-    private Set<Team> teams;
+    @OneToMany(mappedBy = "member")
+    private Set<TeamMember> teams;
 
-    @CreatedDate
-    private Instant createdAt;
+    @OneToMany(mappedBy = "assignee")
+    private List<Task> tasks;
 
-    @LastModifiedDate
-    private Instant updatedAt;
+    @OneToMany(mappedBy = "assignee")
+    private List<SubTask> subTasks;
+
+    @OneToMany(mappedBy = "assignee")
+    private List<ScheduledWork> scheduleWorks;
+
+    @OneToMany(mappedBy = "assignee")
+    private List<LoggedTime> loggedTimes;
 
 }

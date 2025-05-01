@@ -5,6 +5,7 @@ import com.everton.taskmanager.entities.groups.Group;
 import com.everton.taskmanager.entities.groups.folders.Folder;
 import com.everton.taskmanager.entities.groups.projects.Project;
 import com.everton.taskmanager.entities.groups.teams.Team;
+import com.everton.taskmanager.entities.tasks.Task;
 import com.everton.taskmanager.entities.users.User;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -20,12 +21,14 @@ import java.util.Set;
 @NoArgsConstructor
 @Getter
 public class Organization extends Group {
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<OrganizationMember> members;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "organization_members",
-            joinColumns = @JoinColumn(name = "organization_id"),
-            inverseJoinColumns = @JoinColumn(name = "member_id"))
-    private Set<User> members;
+    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Attribute> attributes;
+
+    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Task> tasks;
 
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Team> teams;
@@ -36,21 +39,12 @@ public class Organization extends Group {
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Project> projects;
 
-    @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Attribute> attributes;
-
-    public boolean isOwner(User user) {
-        if (user == null) return false;
-
-        return this.getOwner().getId().equals(user.getId());
-    }
-
     public boolean hasAccess(User user) {
         if (user == null) return false;
 
         boolean isOwner = this.isOwner(user);
         boolean isMember = this.getMembers().stream()
-                .anyMatch(member -> member.getId().equals(user.getId()));
+                .anyMatch(member -> member.getId().getMemberId().equals(user.getId()));
 
         return isOwner || isMember;
     }

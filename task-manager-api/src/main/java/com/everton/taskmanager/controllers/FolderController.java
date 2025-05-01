@@ -1,7 +1,6 @@
 package com.everton.taskmanager.controllers;
 
 import com.everton.taskmanager.dtos.groups.*;
-import com.everton.taskmanager.dtos.user.UserResponseDTO;
 import com.everton.taskmanager.services.FolderService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,17 +59,6 @@ public class FolderController {
     @GetMapping("{folderId}/attributes")
     public ResponseEntity<GroupAttributesResponseDTO> getAttributesByFolder(@PathVariable("folderId") String folderId) {
         return new ResponseEntity<>(folderService.findAttributesByFolderId(folderId), HttpStatus.OK);
-    }
-
-    @PostMapping("{folderId}/members")
-    public ResponseEntity<List<UserResponseDTO>> addMemberToFolder(@PathVariable("folderId") String folderId,
-                                                                   @RequestBody @Valid MemberEmailDTO emailDTO) {
-        return new ResponseEntity<>(folderService.addMemberToFolder(folderId, emailDTO), HttpStatus.CREATED);
-    }
-
-    @GetMapping("{folderId}/members")
-    public ResponseEntity<List<UserResponseDTO>> getMembersByFolder(@PathVariable("folderId") String folderId) {
-        return new ResponseEntity<>(folderService.findMembersByFolderId(folderId), HttpStatus.OK);
     }
 
     @DeleteMapping("{folderId}")

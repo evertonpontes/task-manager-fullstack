@@ -1,7 +1,10 @@
 package com.everton.taskmanager.controllers;
 
 import com.everton.taskmanager.dtos.groups.*;
+import com.everton.taskmanager.dtos.task.SaveTaskDTO;
+import com.everton.taskmanager.dtos.task.TaskResponseDTO;
 import com.everton.taskmanager.dtos.user.UserResponseDTO;
+import com.everton.taskmanager.services.TaskService;
 import com.everton.taskmanager.services.TeamService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +20,9 @@ public class TeamController {
 
     @Autowired
     private TeamService teamService;
+
+    @Autowired
+    private TaskService taskService;
 
     @PostMapping
     public ResponseEntity<GroupResponseDTO> createTeam(@PathVariable("organizationId") String organizationId,
@@ -60,6 +66,17 @@ public class TeamController {
     @GetMapping("{teamId}/members")
     public ResponseEntity<List<UserResponseDTO>> getMembersByTeam(@PathVariable("teamId") String teamId) {
         return new ResponseEntity<>(teamService.findMembersByTeamId(teamId), HttpStatus.OK);
+    }
+
+    @PostMapping("{teamId}/tasks")
+    public ResponseEntity<TaskResponseDTO> createTaskInTeam(@PathVariable("teamId") String teamId,
+                                                                  @RequestBody @Valid SaveTaskDTO taskDTO) {
+        return new ResponseEntity<>(taskService.createTaskInTeam(teamId, taskDTO), HttpStatus.CREATED);
+    }
+
+    @GetMapping("{teamId}/tasks")
+    public ResponseEntity<List<TaskResponseDTO>> getTasksInTeam(@PathVariable("teamId") String teamId) {
+        return new ResponseEntity<>(taskService.findAllTasksInTeam(teamId), HttpStatus.OK);
     }
 
     @DeleteMapping("{teamId}")

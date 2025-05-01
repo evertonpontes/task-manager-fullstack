@@ -54,11 +54,14 @@ public class FolderService {
             throw new AccessDeniedException("You do not have permission to create a folder in this organization.");
         }
 
+        Double sortIndex = folderRepository.findMaxSortIndexByGroupId(organizationId);
+
         Folder folder = Folder
                 .builder()
                 .name(name)
                 .owner(authenticatedUser)
                 .organization(organization)
+                .sortIndex(sortIndex + 1)
                 .build();
 
         return folderMapper.folderToGroupResponseDTO(
@@ -214,44 +217,6 @@ public class FolderService {
         }
 
         return folderMapper.folderToGroupAttributesResponseDTO(folder);
-    }
-
-    public List<UserResponseDTO> addMemberToFolder(String folderId, MemberEmailDTO emailDTO) {
-        Folder folder = folderRepository
-                .findById(folderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Folder not found."));
-
-        Organization organization = folder.getOrganization();
-
-        User authenticatedUser = authService.getAuthenticatedUser();
-
-        if (!organization.isOwner(authenticatedUser)) {
-            throw new AccessDeniedException("You do not have permission to add a member in this folder.");
-        }
-
-        User member = userRepository.findByEmail(emailDTO.email())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
-
-        organization.getMembers().add(member);
-
-        return folderMapper.userToUserResponseDTO(organizationRepository
-                .save(organization).getMembers().stream().toList());
-    }
-
-    public List<UserResponseDTO> findMembersByFolderId(String folderId) {
-        Folder folder = folderRepository
-                .findById(folderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Folder not found."));
-
-        Organization organization = folder.getOrganization();
-
-        User authenticatedUser = authService.getAuthenticatedUser();
-
-        if (!organization.hasAccess(authenticatedUser)) {
-            throw new AccessDeniedException("You do not have permission to view members in this folder.");
-        }
-
-        return folderMapper.userToUserResponseDTO(organization.getMembers().stream().toList());
     }
 
     public void deleteFolder(String folderId) {

@@ -3,17 +3,21 @@ package com.everton.taskmanager.mapper;
 import com.everton.taskmanager.dtos.attribute.AttributeResponseDTO;
 import com.everton.taskmanager.dtos.attribute.SaveAttributeDTO;
 import com.everton.taskmanager.dtos.groups.GroupAttributesResponseDTO;
+import com.everton.taskmanager.dtos.groups.GroupMemberResponseDTO;
 import com.everton.taskmanager.dtos.groups.GroupResponseDTO;
 import com.everton.taskmanager.dtos.user.UserResponseDTO;
 import com.everton.taskmanager.entities.attributes.Attribute;
 import com.everton.taskmanager.entities.attributes.AttributeTypeEnum;
+import com.everton.taskmanager.entities.groups.GroupMemberId;
 import com.everton.taskmanager.entities.groups.projects.Project;
+import com.everton.taskmanager.entities.groups.projects.ProjectMember;
 import com.everton.taskmanager.entities.users.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
 import java.util.List;
+import java.util.Set;
 
 @Mapper(componentModel = "spring")
 public interface ProjectMapper {
@@ -58,5 +62,19 @@ public interface ProjectMapper {
                 .toList();
     }
 
-    public List<UserResponseDTO> userToUserResponseDTO(List<User> users);
+
+    public List<GroupMemberResponseDTO> groupMemberToGroupMemberDTO(Set<ProjectMember> groupMembers);
+
+    @Mapping(target = "memberDetails", source = "member", qualifiedByName = "userToUserResponseDTO")
+    @Mapping(target = "id", source = "id", qualifiedByName = "mapGroupMemberId")
+    GroupMemberResponseDTO groupMemberToDTO(ProjectMember groupMember);
+
+    @Named("userToUserResponseDTO")
+    public UserResponseDTO userToUserResponseDTO(User user);
+
+    @Named("mapGroupMemberId")
+    default String mapGroupMemberId(GroupMemberId value) {
+        if (value == null) return null;
+        return value.getMemberId();
+    }
 }

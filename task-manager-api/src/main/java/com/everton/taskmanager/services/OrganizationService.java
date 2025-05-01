@@ -2,9 +2,10 @@ package com.everton.taskmanager.services;
 
 import com.everton.taskmanager.config.exceptions.ResourceNotFoundException;
 import com.everton.taskmanager.dtos.groups.*;
-import com.everton.taskmanager.dtos.user.UserResponseDTO;
 import com.everton.taskmanager.entities.attributes.Attribute;
+import com.everton.taskmanager.entities.groups.GroupMemberId;
 import com.everton.taskmanager.entities.groups.organizations.Organization;
+import com.everton.taskmanager.entities.groups.organizations.OrganizationMember;
 import com.everton.taskmanager.entities.users.User;
 import com.everton.taskmanager.mapper.OrganizationMapper;
 import com.everton.taskmanager.repositories.OrganizationRepository;
@@ -33,10 +34,14 @@ public class OrganizationService {
     public GroupResponseDTO createOrganization(SaveGroupDTO organizationDTO) {
         String name = organizationDTO.name().trim();
 
+        User authenticatedUser = authService.getAuthenticatedUser();
+        Double sortIndex = organizationRepository.findMaxSortIndexByOwner(authenticatedUser.getId());
+
         Organization organization = Organization
                 .builder()
                 .name(name)
-                .owner(authService.getAuthenticatedUser())
+                .sortIndex(sortIndex + 1)
+                .owner(authenticatedUser)
                 .build();
 
         return organizationMapper.organizationToGroupResponseDTO(
@@ -129,7 +134,7 @@ public class OrganizationService {
         return organizationMapper.organizationToGroupAttributesResponseDTO(organization);
     }
 
-    public List<UserResponseDTO> addMemberToOrganization(String organizationId, MemberEmailDTO emailDTO) {
+    public List<GroupMemberResponseDTO> addMemberToOrganization(String organizationId, MemberEmailDTO emailDTO) {
         Organization organization = organizationRepository
                 .findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
@@ -140,16 +145,26 @@ public class OrganizationService {
             throw new AccessDeniedException("You do not have permission to add a member in this organization.");
         }
 
+        Double sortIndex = organizationRepository.findMaxSortIndexByGroupId(organizationId);
+
         User member = userRepository.findByEmail(emailDTO.email())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found."));
 
-        organization.getMembers().add(member);
+        OrganizationMember organizationMember = new OrganizationMember();
+        GroupMemberId id = new GroupMemberId(member.getId(), organizationId);
 
-        return organizationMapper.userToUserResponseDTO(organizationRepository
-                .save(organization).getMembers().stream().toList());
+        organizationMember.setId(id);
+        organizationMember.setGroup(organization);
+        organizationMember.setMember(member);
+        organizationMember.setSortIndex(sortIndex + 1);
+
+        organization.getMembers().add(organizationMember);
+
+        return organizationMapper.groupMemberToGroupMemberDTO(organizationRepository
+                .save(organization).getMembers());
     }
 
-    public List<UserResponseDTO> findMembersByOrganizationId(String organizationId) {
+    public List<GroupMemberResponseDTO> findMembersByOrganizationId(String organizationId) {
         Organization organization = organizationRepository
                 .findById(organizationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found."));
@@ -160,7 +175,7 @@ public class OrganizationService {
             throw new AccessDeniedException("You do not have permission to view members in this organization.");
         }
 
-        return organizationMapper.userToUserResponseDTO(organization.getMembers().stream().toList());
+        return organizationMapper.groupMemberToGroupMemberDTO(organization.getMembers());
     }
 
     public void deleteOrganization(String organizationId) {
