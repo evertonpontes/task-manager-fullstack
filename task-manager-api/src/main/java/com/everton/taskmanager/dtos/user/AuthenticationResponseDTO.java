@@ -1,6 +1,10 @@
 package com.everton.taskmanager.dtos.user;
 
-public record TokenDTO (
-        String token
+import lombok.Builder;
+
+@Builder
+public record AuthenticationResponseDTO(
+        String token,
+        UserResponseDTO user
 ) {
 }

@@ -5,7 +5,7 @@ import com.everton.taskmanager.config.security.JwtTokenService;
 import com.everton.taskmanager.config.security.userdetails.UserDetailsImpl;
 import com.everton.taskmanager.dtos.user.CreateUserDTO;
 import com.everton.taskmanager.dtos.user.LoginDTO;
-import com.everton.taskmanager.dtos.user.TokenDTO;
+import com.everton.taskmanager.dtos.user.AuthenticationResponseDTO;
 import com.everton.taskmanager.dtos.user.UserResponseDTO;
 import com.everton.taskmanager.entities.users.User;
 import com.everton.taskmanager.mapper.UserMapper;
@@ -35,6 +35,9 @@ public class UserService {
     @Autowired
     private JwtTokenService jwtTokenService;
 
+    @Autowired
+    private AuthService authService;
+
     public UserResponseDTO createUser(CreateUserDTO userDTO) {
 
         String email = userDTO.email().trim().toLowerCase();
@@ -51,7 +54,7 @@ public class UserService {
         return userMapper.userToUserResponseDTO(userRepository.save(user));
     }
 
-    public TokenDTO authenticateUser(LoginDTO loginDTO) {
+    public AuthenticationResponseDTO authenticateUser(LoginDTO loginDTO) {
 
         UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken =
                 new UsernamePasswordAuthenticationToken(loginDTO.email(), loginDTO.password());
@@ -60,6 +63,15 @@ public class UserService {
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        return new TokenDTO(jwtTokenService.generateToken(userDetails));
+        return AuthenticationResponseDTO.builder()
+                .token(jwtTokenService.generateToken(userDetails))
+                .user(userMapper.userToUserResponseDTO(userDetails.getUser()))
+                .build();
+    }
+
+    public UserResponseDTO getUserAuthenticated() {
+        User authenticatedUser = authService.getAuthenticatedUser();
+
+        return userMapper.userToUserResponseDTO(authenticatedUser);
     }
 }
