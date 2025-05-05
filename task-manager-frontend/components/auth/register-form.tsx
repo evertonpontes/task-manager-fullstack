@@ -115,6 +115,7 @@ export const RegisterForm = () => {
                         placeholder="m@example.com"
                         {...field}
                         type="email"
+                        autoComplete="username"
                       />
                     </FormControl>
                     <FormMessage />
@@ -128,7 +129,11 @@ export const RegisterForm = () => {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" {...field} />
+                      <Input
+                        type="password"
+                        autoComplete="current-password"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
