@@ -14,9 +14,9 @@ import java.time.ZoneOffset;
 
 @Service
 public class TokenService {
-    @Value("${spring.jwt.token.secret-key}")
+    @Value("${app.jwt.token.secret-key}")
     private String secretKey;
-    @Value("${spring.jwt.token.issuer}")
+    @Value("${app.jwt.token.issuer}")
     private String issuer;
 
     public String generateToken(String subject) {
