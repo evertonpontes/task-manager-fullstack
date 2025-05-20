@@ -40,10 +40,15 @@ public class User implements UserDetails {
     private String password;
     @Column(nullable = false)
     private Boolean isEmailVerified;
+    private Integer failedLoginAttempts;
+    private LocalDateTime lastFailedLogin;
+    private LocalDateTime isLockedUntil;
     @CreatedDate
     private LocalDateTime createdAt;
     @LastModifiedDate
     private LocalDateTime updatedAt;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Session> sessions;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -62,7 +67,8 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        if (this.isLockedUntil == null) return true;
+        return this.isLockedUntil.isBefore(LocalDateTime.now());
     }
 
     @Override

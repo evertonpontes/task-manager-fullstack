@@ -44,11 +44,12 @@ public class TokenService {
                     .verify(token)
                     .getSubject();
         } catch (IllegalArgumentException | JWTVerificationException e) {
+            System.out.println(e.getMessage());
             throw new TokenValidateException("Invalid token provided.");
         }
     }
 
     public Instant expiresAt() {
-        return LocalDateTime.now().plusMinutes(5).toInstant(ZoneOffset.UTC);
+        return LocalDateTime.now().plusMinutes(5).toInstant(ZoneOffset.of("-03:00"));
     }
 }

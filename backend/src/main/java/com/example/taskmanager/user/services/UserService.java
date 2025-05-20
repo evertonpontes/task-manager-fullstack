@@ -3,18 +3,12 @@ package com.example.taskmanager.user.services;
 import com.example.taskmanager.config.auth.services.TokenService;
 import com.example.taskmanager.user.dtos.CreateUserRequest;
 import com.example.taskmanager.user.dtos.UserResponse;
-import com.example.taskmanager.user.entities.User;
-import com.example.taskmanager.user.entities.UserRolesEnum;
-import com.example.taskmanager.user.entities.VerificationToken;
-import com.example.taskmanager.user.entities.VerificationTokenId;
+import com.example.taskmanager.user.entities.*;
 import com.example.taskmanager.user.jobs.SendEmailJob;
 import com.example.taskmanager.user.mapper.UserMapper;
 import com.example.taskmanager.user.repositories.UserRepository;
 import com.example.taskmanager.user.repositories.VerificationTokenRepository;
-import com.example.taskmanager.utils.exceptions.TokenNotFoundException;
-import com.example.taskmanager.utils.exceptions.TokenValidateException;
-import com.example.taskmanager.utils.exceptions.UsernameAlreadyExistsException;
-import com.example.taskmanager.utils.exceptions.VerificationRateLimitException;
+import com.example.taskmanager.utils.exceptions.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -34,6 +28,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final VerificationTokenRepository verificationTokenRepository;
     private final SendEmailJob sendEmailJob;
+    private final TokenService tokenService;
 
     @Transactional
     public UserResponse create(CreateUserRequest request) {
@@ -52,6 +47,7 @@ public class UserService {
                     .email(email)
                     .password(passwordEncoder.encode(password))
                     .isEmailVerified(false)
+                    .failedLoginAttempts(0)
                     .build());
 
             sendVerificationCode(newUser);
@@ -106,6 +102,12 @@ public class UserService {
         user.setIsEmailVerified(true);
         userRepository.save(user);
         verificationTokenRepository.delete(verificationToken);
+    }
+
+    public UserResponse findByAccessToken(String accessToken) {
+        String email = tokenService.validateToken(accessToken);
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User with email %s not found.".formatted(email)));
+        return userMapper.userToResponseData(user);
     }
     //TODO: create a get user method
     //TODO: create a update user method

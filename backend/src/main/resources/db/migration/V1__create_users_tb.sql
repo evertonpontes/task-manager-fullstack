@@ -7,6 +7,9 @@ CREATE TABLE users (
     email TEXT NOT NULL,
     password TEXT NOT NULL,
     is_email_verified BOOLEAN DEFAULT false,
+    failed_login_attempts INT DEFAULT 0,
+    last_failed_login TIMESTAMP,
+    is_locked_until TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)

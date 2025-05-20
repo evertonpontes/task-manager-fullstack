@@ -1,5 +1,6 @@
 package com.example.taskmanager.utils.exceptions.handler;
 
+import com.example.taskmanager.utils.exceptions.CustomAuthenticationException;
 import com.example.taskmanager.utils.exceptions.model.ExceptionResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,5 +42,17 @@ public class RestExceptionHandler {
                 .build();
 
         return ResponseEntity.badRequest().body(exception);
+    }
+
+    @ExceptionHandler(CustomAuthenticationException.class)
+    public ResponseEntity<ExceptionResponse> customAuthenticationException(CustomAuthenticationException ex) {
+        ExceptionResponse exception = ExceptionResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.UNAUTHORIZED.name())
+                .code(HttpStatus.UNAUTHORIZED.value())
+                .errors(List.of(ex.getMessage()))
+                .build();
+
+        return new ResponseEntity<>(exception, HttpStatus.UNAUTHORIZED);
     }
 }
