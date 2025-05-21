@@ -26,9 +26,7 @@ public class User implements UserDetails {
     private UUID id;
     @Enumerated(EnumType.STRING)
     private UserRolesEnum role;
-    @Column(nullable = false)
     private String firstName;
-    @Column(nullable = false)
     private String lastName;
     private String picture;
     @Column(unique = true, nullable = false)

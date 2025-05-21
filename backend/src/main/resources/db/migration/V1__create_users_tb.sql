@@ -1,8 +1,8 @@
 CREATE TABLE users (
     id UUID DEFAULT gen_random_uuid(),
     role VARCHAR(10) DEFAULT 'USER',
-    first_name VARCHAR(255) NOT NULL,
-    last_name VARCHAR(255) NOT NULL,
+    first_name VARCHAR(255),
+    last_name VARCHAR(255),
     picture TEXT,
     email TEXT NOT NULL,
     password TEXT,

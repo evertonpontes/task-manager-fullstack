@@ -6,7 +6,6 @@ import com.example.taskmanager.user.dtos.UserResponse;
 import com.example.taskmanager.user.entities.*;
 import com.example.taskmanager.user.jobs.SendEmailJob;
 import com.example.taskmanager.user.mapper.UserMapper;
-import com.example.taskmanager.user.repositories.AccountRepository;
 import com.example.taskmanager.user.repositories.UserRepository;
 import com.example.taskmanager.user.repositories.VerificationTokenRepository;
 import com.example.taskmanager.utils.exceptions.*;
@@ -30,7 +29,6 @@ public class UserService {
     private final VerificationTokenRepository verificationTokenRepository;
     private final SendEmailJob sendEmailJob;
     private final TokenService tokenService;
-    private final AccountRepository accountRepository;
 
     @Transactional
     public UserResponse create(CreateUserRequest request) {
@@ -39,9 +37,9 @@ public class UserService {
         String email = request.email().toLowerCase();
         String password = request.password();
 
-        Optional<User> existingUserOpt = userRepository.findByEmail(email);
+        User existingUser = userRepository.findByEmail(email).orElse(null);
 
-        if (existingUserOpt.isEmpty()) {
+        if (existingUser == null) { // if user not exists
             User newUser = userRepository.save(User.builder()
                     .firstName(firstName)
                     .lastName(lastName)
@@ -52,43 +50,32 @@ public class UserService {
                     .failedLoginAttempts(0)
                     .build());
 
-            accountRepository.save(
-                    Account.builder()
-                            .provider("credentials")
-                            .providerAccountId(email)
-                            .user(newUser)
-                            .build()
-            );
-
             sendVerificationCode(newUser);
             return userMapper.userToResponseData(newUser);
-        }
 
-        User existingUser = existingUserOpt.get();
+        } else { // if users exists
+            if (existingUser.getIsEmailVerified()) throw new UsernameAlreadyExistsException("Email %s is already in use.". formatted(existingUser.getEmail())); // if user email is already verified
 
-        if (existingUser.getIsEmailVerified()) {
-            saveNewAccount(existingUser);
-        }
+            Optional<VerificationToken> verificationTokenOpt = verificationTokenRepository
+                    .findTopByIdIdentifierOrderByLastSentAtDesc(existingUser.getEmail()); // fetch if exists the last sent verification token
 
-        Optional<VerificationToken> verificationTokenOpt = verificationTokenRepository
-                .findTopByIdIdentifierOrderByLastSentAtDesc(existingUser.getEmail());
+            if (verificationTokenOpt.isPresent()) {
+                VerificationToken verificationToken = verificationTokenOpt.get();
 
-        if (verificationTokenOpt.isPresent()) {
-            VerificationToken verificationToken = verificationTokenOpt.get();
+                LocalDateTime lastSentAt = verificationToken.getLastSentAt();
+                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime limit = lastSentAt.plusSeconds(30);
 
-            LocalDateTime lastSentAt = verificationToken.getLastSentAt();
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime limit = lastSentAt.plusSeconds(30);
-
-            if (now.isBefore(limit)) {
-                Duration secondsLeft = Duration.between(now, limit);
-                long seconds = secondsLeft.getSeconds();
-                throw new VerificationRateLimitException("Rate limit exceeded, please wait %d seconds to requesting a new verification token.".formatted(seconds));
+                if (now.isBefore(limit)) {
+                    Duration secondsLeft = Duration.between(now, limit);
+                    long seconds = secondsLeft.getSeconds();
+                    throw new VerificationRateLimitException("Rate limit exceeded, please wait %d seconds to requesting a new verification token.".formatted(seconds));
+                }
             }
-        }
 
-        sendVerificationCode(existingUser);
-        return userMapper.userToResponseData(existingUser);
+            sendVerificationCode(existingUser);
+            return userMapper.userToResponseData(existingUser);
+        }
     }
 
     private void sendVerificationCode(User user) {
@@ -120,21 +107,6 @@ public class UserService {
         String email = tokenService.validateToken(accessToken);
         User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User with email %s not found.".formatted(email)));
         return userMapper.userToResponseData(user);
-    }
-
-    private void saveNewAccount(User user) {
-        Account account = accountRepository.findByProviderAndProviderAccountId("credentials", user.getEmail()).orElse(null);
-        if (account != null) throw new UsernameAlreadyExistsException("Email %s is already in use.". formatted(user.getEmail()));
-
-        accountRepository.save(
-                Account.builder()
-                        .provider("credentials")
-                        .providerAccountId(user.getEmail())
-                        .user(user)
-                        .build()
-        );
-
-        return;
     }
     //TODO: create a get user method
     //TODO: create a update user method

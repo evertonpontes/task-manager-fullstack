@@ -41,53 +41,16 @@ public class Oauth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     @Transactional
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
-        OAuth2User oAuth2User = token.getPrincipal();
+        OAuth2User oAuth2User = (OAuth2User) token.getPrincipal();
         String provider = token.getAuthorizedClientRegistrationId();
 
-        String providerAccountId = oAuth2User.getAttribute("sub");
-        String email = oAuth2User.getAttribute("email");
-        String firstName = oAuth2User.getAttribute("given_name");
-        String lastName = oAuth2User.getAttribute("family_name");
-        String picture = oAuth2User.getAttribute("picture");
-
-        User user = userRepository.findByEmailWithAccounts(email).orElse(null);
-        System.out.println(user);
-        if (user != null) {
-            Account account = accountRepository.findByProviderAndProviderAccountId(provider, providerAccountId).orElse(null);
-            if (account == null) {
-                Account newAccount = Account.builder()
-                        .provider(provider)
-                        .providerAccountId(providerAccountId)
-                        .user(user)
-                        .build();
-
-                user.getAccounts().add(newAccount);
-                accountRepository.save(newAccount);
-            }
-            authenticateUser(user, response);
+        if (provider.equals("google")) {
+            authenticateWithGoogle(oAuth2User, response, token.getName());
+        } else if (provider.equals("github")) {
+            authenticateWithGithub(oAuth2User, response, token.getName());
+        } else {
             return;
         }
-
-        User savedUser = userRepository.save(
-                User.builder()
-                        .firstName(firstName)
-                        .lastName(lastName)
-                        .email(email)
-                        .role(UserRolesEnum.USER)
-                        .picture(picture)
-                        .isEmailVerified(true)
-                        .failedLoginAttempts(0)
-                        .build()
-        );
-
-        accountRepository.save(
-                Account.builder()
-                        .provider(provider)
-                        .providerAccountId(providerAccountId)
-                        .user(savedUser)
-                        .build()
-        );
-        authenticateUser(savedUser, response);
     }
 
     private void authenticateUser(User user, HttpServletResponse response) throws IOException {
@@ -120,8 +83,8 @@ public class Oauth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                 .sameSite("Lax")
                 .build();
 
-        response.addHeader("Set_Cookie", accessTokenCookie.toString());
-        response.addHeader("Set_Cookie", sessionTokenCookie.toString());
+        response.addHeader("Set-Cookie", accessTokenCookie.toString());
+        response.addHeader("Set-Cookie", sessionTokenCookie.toString());
         response.sendRedirect("/api/auth/login-success");
     }
 
@@ -130,5 +93,93 @@ public class Oauth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         byte[] bytes = new byte[64];
         secureRandom.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private void authenticateWithGoogle(OAuth2User oAuth2User, HttpServletResponse response, String providerAccountId) throws IOException {
+        String email = oAuth2User.getAttribute("email");
+        String firstName = oAuth2User.getAttribute("given_name");
+        String lastName = oAuth2User.getAttribute("family_name");
+        String picture = oAuth2User.getAttribute("picture");
+
+        User user = userRepository.findByEmailWithAccounts(email).orElse(null);
+        if (user != null) {
+            Account account = accountRepository.findByProviderAndProviderAccountId("google", providerAccountId).orElse(null);
+            if (account == null) {
+                Account newAccount = Account.builder()
+                        .provider("google")
+                        .providerAccountId(providerAccountId)
+                        .user(user)
+                        .build();
+
+                user.getAccounts().add(newAccount);
+                accountRepository.save(newAccount);
+            }
+            authenticateUser(user, response);
+            return;
+        }
+
+        User savedUser = userRepository.save(
+                User.builder()
+                        .firstName(firstName)
+                        .lastName(lastName)
+                        .email(email)
+                        .role(UserRolesEnum.USER)
+                        .picture(picture)
+                        .isEmailVerified(true)
+                        .failedLoginAttempts(0)
+                        .build()
+        );
+
+        accountRepository.save(
+                Account.builder()
+                        .provider("google")
+                        .providerAccountId(providerAccountId)
+                        .user(savedUser)
+                        .build()
+        );
+        authenticateUser(savedUser, response);
+    }
+
+    private void authenticateWithGithub(OAuth2User oAuth2User, HttpServletResponse response, String providerAccountId) throws IOException {
+        String name = (String) oAuth2User.getAttribute("name");
+        String email = oAuth2User.getAttribute("email");
+        String picture = oAuth2User.getAttribute("avatar_url");
+
+        User user = userRepository.findByEmailWithAccounts(email).orElse(null);
+        if (user != null) {
+            Account account = accountRepository.findByProviderAndProviderAccountId("github", providerAccountId).orElse(null);
+            if (account == null) {
+                Account newAccount = Account.builder()
+                        .provider("github")
+                        .providerAccountId(providerAccountId)
+                        .user(user)
+                        .build();
+
+                user.getAccounts().add(newAccount);
+                accountRepository.save(newAccount);
+            }
+            authenticateUser(user, response);
+            return;
+        }
+
+        User savedUser = userRepository.save(
+                User.builder()
+                        .firstName(name)
+                        .email(email)
+                        .role(UserRolesEnum.USER)
+                        .picture(picture)
+                        .isEmailVerified(true)
+                        .failedLoginAttempts(0)
+                        .build()
+        );
+
+        accountRepository.save(
+                Account.builder()
+                        .provider("github")
+                        .providerAccountId(providerAccountId)
+                        .user(savedUser)
+                        .build()
+        );
+        authenticateUser(savedUser, response);
     }
 }

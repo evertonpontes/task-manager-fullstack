@@ -1,5 +1,6 @@
 package com.example.taskmanager.config.auth.config;
 
+import com.example.taskmanager.config.auth.services.CustomOauth2UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,7 @@ import java.util.List;
 public class SecurityConfiguration {
     private final Oauth2LoginSuccessHandler loginSuccessHandler;
     private final SecurityFilter securityFilter;
+    private final CustomOauth2UserService customOauth2UserService;
     @Value("${app.allowed-origins}")
     private List<String> allowedOrigins;
 
@@ -56,6 +58,7 @@ public class SecurityConfiguration {
                 })
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .oauth2Login(customizer -> customizer
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOauth2UserService))
                         .successHandler(loginSuccessHandler)
                         .failureHandler((request, response, exception) -> {
                             exception.printStackTrace(); // Print full OAuth2AuthenticationException
