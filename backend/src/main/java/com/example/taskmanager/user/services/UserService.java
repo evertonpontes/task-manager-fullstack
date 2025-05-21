@@ -6,6 +6,7 @@ import com.example.taskmanager.user.dtos.UserResponse;
 import com.example.taskmanager.user.entities.*;
 import com.example.taskmanager.user.jobs.SendEmailJob;
 import com.example.taskmanager.user.mapper.UserMapper;
+import com.example.taskmanager.user.repositories.AccountRepository;
 import com.example.taskmanager.user.repositories.UserRepository;
 import com.example.taskmanager.user.repositories.VerificationTokenRepository;
 import com.example.taskmanager.utils.exceptions.*;
@@ -29,6 +30,7 @@ public class UserService {
     private final VerificationTokenRepository verificationTokenRepository;
     private final SendEmailJob sendEmailJob;
     private final TokenService tokenService;
+    private final AccountRepository accountRepository;
 
     @Transactional
     public UserResponse create(CreateUserRequest request) {
@@ -50,13 +52,23 @@ public class UserService {
                     .failedLoginAttempts(0)
                     .build());
 
+            accountRepository.save(
+                    Account.builder()
+                            .provider("credentials")
+                            .providerAccountId(email)
+                            .user(newUser)
+                            .build()
+            );
+
             sendVerificationCode(newUser);
             return userMapper.userToResponseData(newUser);
         }
 
         User existingUser = existingUserOpt.get();
 
-        if (existingUser.getIsEmailVerified()) throw new UsernameAlreadyExistsException("Email %s is already in use.". formatted(email));
+        if (existingUser.getIsEmailVerified()) {
+            saveNewAccount(existingUser);
+        }
 
         Optional<VerificationToken> verificationTokenOpt = verificationTokenRepository
                 .findTopByIdIdentifierOrderByLastSentAtDesc(existingUser.getEmail());
@@ -108,6 +120,21 @@ public class UserService {
         String email = tokenService.validateToken(accessToken);
         User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User with email %s not found.".formatted(email)));
         return userMapper.userToResponseData(user);
+    }
+
+    private void saveNewAccount(User user) {
+        Account account = accountRepository.findByProviderAndProviderAccountId("credentials", user.getEmail()).orElse(null);
+        if (account != null) throw new UsernameAlreadyExistsException("Email %s is already in use.". formatted(user.getEmail()));
+
+        accountRepository.save(
+                Account.builder()
+                        .provider("credentials")
+                        .providerAccountId(user.getEmail())
+                        .user(user)
+                        .build()
+        );
+
+        return;
     }
     //TODO: create a get user method
     //TODO: create a update user method

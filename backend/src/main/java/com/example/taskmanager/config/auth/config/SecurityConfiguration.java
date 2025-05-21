@@ -27,6 +27,7 @@ import java.util.List;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfiguration {
+    private final Oauth2LoginSuccessHandler loginSuccessHandler;
     private final SecurityFilter securityFilter;
     @Value("${app.allowed-origins}")
     private List<String> allowedOrigins;
@@ -54,6 +55,13 @@ public class SecurityConfiguration {
                     });
                 })
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
+                .oauth2Login(customizer -> customizer
+                        .successHandler(loginSuccessHandler)
+                        .failureHandler((request, response, exception) -> {
+                            exception.printStackTrace(); // Print full OAuth2AuthenticationException
+                            response.sendRedirect("/login?error=oauth_failure");
+                        })
+                )
                 .build();
     }
 

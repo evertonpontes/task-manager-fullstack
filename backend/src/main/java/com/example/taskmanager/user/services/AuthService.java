@@ -34,7 +34,7 @@ public class AuthService {
 
         try {
             isAccountLocked(email);
-            Authentication token = UsernamePasswordAuthenticationToken.unauthenticated(email, password);
+            Authentication token = new UsernamePasswordAuthenticationToken(email, password);
             Authentication authentication = authenticationManager.authenticate(token);
             User user = (User) authentication.getPrincipal();
 
@@ -52,7 +52,7 @@ public class AuthService {
             sessionRepository.save(session);
             return new AuthTokensResponse(accessToken, sessionToken);
 
-        }catch (BadCredentialsException e) {
+        } catch (BadCredentialsException e) {
             Optional<User> userOptional = userRepository.findByEmail(email);
 
             userOptional.ifPresent(user -> {

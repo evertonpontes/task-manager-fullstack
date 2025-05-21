@@ -13,18 +13,18 @@ import org.springframework.web.servlet.view.RedirectView;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
+
 @RestController
-@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
 
-    @PostMapping("/register")
+    @PostMapping("/api/auth/register")
     public ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest request) {
         return new ResponseEntity<>(userService.create(request), HttpStatus.CREATED);
     }
 
-    @GetMapping("verify-email")
+    @GetMapping("/api/auth/verify-email")
     public RedirectView verifyToken(@RequestParam String token) {
         try {
             userService.verifyToken(token);
@@ -40,10 +40,5 @@ public class UserController {
             String url = "http://localhost:8080/api/auth/login?error=" + encodedMessage;
             return new RedirectView(url);
         }
-    }
-
-    @GetMapping("login")
-    public String login() {
-        return "Hello world";
     }
 }

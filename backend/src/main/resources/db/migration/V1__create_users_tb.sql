@@ -5,7 +5,7 @@ CREATE TABLE users (
     last_name VARCHAR(255) NOT NULL,
     picture TEXT,
     email TEXT NOT NULL,
-    password TEXT NOT NULL,
+    password TEXT,
     is_email_verified BOOLEAN DEFAULT false,
     failed_login_attempts INT DEFAULT 0,
     last_failed_login TIMESTAMP,
