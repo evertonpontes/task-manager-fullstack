@@ -24,6 +24,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Collections;
 import java.util.List;
 
+import static org.springframework.security.web.util.matcher.AntPathRequestMatcher.antMatcher;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -46,7 +48,12 @@ public class SecurityConfiguration {
                         auth -> {
                             auth
                                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                                    .requestMatchers("/api/auth/**").permitAll()
+                                    .requestMatchers(antMatcher(HttpMethod.POST, "/api/users/register")).permitAll()
+                                    .requestMatchers(antMatcher(HttpMethod.GET, "/api/users/verify-email")).permitAll()
+                                    .requestMatchers(antMatcher(HttpMethod.POST, "/api/users/forgot-password")).permitAll()
+                                    .requestMatchers(antMatcher(HttpMethod.PATCH, "/api/users/reset-password")).permitAll()
+                                    .requestMatchers(antMatcher(HttpMethod.POST, "/api/auth/login")).permitAll()
+                                    .requestMatchers(antMatcher(HttpMethod.POST, "/api/auth/refresh-token")).permitAll()
                                     .anyRequest().authenticated();
                         }
                 )

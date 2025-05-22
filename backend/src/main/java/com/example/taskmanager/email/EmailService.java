@@ -20,6 +20,7 @@ public class EmailService {
             log.info("Sending email to: {}", to);
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
+            helper.setFrom("noreply@taskmanager.com");
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(body, true);

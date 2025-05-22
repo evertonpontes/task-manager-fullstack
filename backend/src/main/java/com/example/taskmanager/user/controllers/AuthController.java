@@ -22,7 +22,7 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
 
-    @PostMapping("login")
+    @PostMapping("/login")
     public ResponseEntity<UserResponse> login(@Valid @RequestBody LoginUserRequest request) {
         AuthTokensResponse tokensResponse = authService.login(request);
         UserResponse user = userService.findByAccessToken(tokensResponse.accessToken());
@@ -49,7 +49,7 @@ public class AuthController {
                 .body(user);
     }
 
-    @PostMapping("refresh-token")
+    @PostMapping("/refresh-token")
     public ResponseEntity<Void> refreshToken(@CookieValue("session-token") String sessionToken) {
         AuthTokensResponse tokensResponse = authService.refreshToken(sessionToken);
 
@@ -75,7 +75,7 @@ public class AuthController {
                 .build();
     }
 
-    @DeleteMapping("logout")
+    @DeleteMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response, @CookieValue("session-token") String sessionToken) {
         authService.logout(request, response, sessionToken);
 

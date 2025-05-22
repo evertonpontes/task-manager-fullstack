@@ -39,7 +39,7 @@ public class SendEmailJob {
             return;
         }
 
-        String verificationLink = baseUrl + "/api/auth/verify-email?token=" + verificationToken.getId().getCode();
+        String verificationLink = baseUrl + "/api/users/verify-email?token=" + verificationToken.getId().getCode();
         Context thymeleafContext = new Context();
         thymeleafContext.setVariable("name", user.getFirstName());
         thymeleafContext.setVariable("email", user.getEmail());
@@ -65,7 +65,7 @@ public class SendEmailJob {
             return;
         }
 
-        String passwordResetLink = baseUrl + "/api/auth/reset-password?token=" + passwordResetToken.getToken();
+        String passwordResetLink = baseUrl + "/api/users/reset-password?token=" + passwordResetToken.getToken();
         Context thymeleafContext = new Context();
         thymeleafContext.setVariable("name", user.getFirstName());
         thymeleafContext.setVariable("email", user.getEmail());

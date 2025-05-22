@@ -1,10 +1,7 @@
 package com.example.taskmanager.user.services;
 
 import com.example.taskmanager.config.auth.services.TokenService;
-import com.example.taskmanager.user.dtos.CreateUserRequest;
-import com.example.taskmanager.user.dtos.ForgotPasswordRequest;
-import com.example.taskmanager.user.dtos.ResetPasswordRequest;
-import com.example.taskmanager.user.dtos.UserResponse;
+import com.example.taskmanager.user.dtos.*;
 import com.example.taskmanager.user.entities.*;
 import com.example.taskmanager.user.jobs.SendEmailJob;
 import com.example.taskmanager.user.mapper.UserMapper;
@@ -14,6 +11,9 @@ import com.example.taskmanager.user.repositories.VerificationTokenRepository;
 import com.example.taskmanager.utils.exceptions.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -137,6 +137,36 @@ public class UserService {
         passwordResetToken.setUsed(true);
         userRepository.save(user);
     }
-    //TODO: create a update user method
+
+    public UserResponse update(UpdateUserRequest request) {
+        String firstName = request.firstName();
+        String lastName = request.lastName();
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User authUser = (User) authentication.getPrincipal();
+
+        authUser.setFirstName(firstName);
+        authUser.setLastName(lastName);
+
+        authUser = userRepository.save(authUser);
+        return userMapper.userToResponseData(authUser);
+    }
+
+    public UserResponse updatePassword(UpdateUserPassword request) {
+        String currentPassword = request.currentPassword();
+        String newPassword = request.newPassword();
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User authUser = (User) authentication.getPrincipal();
+
+        if (authUser.getPassword() != null && !passwordEncoder.matches(currentPassword, authUser.getPassword())) {
+            throw new BadCredentialsException("Wrong password provided.");
+        }
+
+        authUser.setPassword(passwordEncoder.encode(newPassword));
+
+        authUser = userRepository.save(authUser);
+        return userMapper.userToResponseData(authUser);
+    }
     //TODO: create a delete user method
 }

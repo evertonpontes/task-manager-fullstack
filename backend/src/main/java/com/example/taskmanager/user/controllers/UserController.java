@@ -1,9 +1,6 @@
 package com.example.taskmanager.user.controllers;
 
-import com.example.taskmanager.user.dtos.CreateUserRequest;
-import com.example.taskmanager.user.dtos.ForgotPasswordRequest;
-import com.example.taskmanager.user.dtos.ResetPasswordRequest;
-import com.example.taskmanager.user.dtos.UserResponse;
+import com.example.taskmanager.user.dtos.*;
 import com.example.taskmanager.user.services.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,17 +14,17 @@ import java.nio.charset.StandardCharsets;
 
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
 
-    @PostMapping("register")
+    @PostMapping("/register")
     public ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest request) {
         return new ResponseEntity<>(userService.create(request), HttpStatus.CREATED);
     }
 
-    @GetMapping("verify-email")
+    @GetMapping("/verify-email")
     public RedirectView verifyToken(@RequestParam String token) {
         try {
             userService.verifyToken(token);
@@ -45,15 +42,25 @@ public class UserController {
         }
     }
 
-    @PostMapping("forgot-password")
+    @PostMapping("/forgot-password")
     public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         userService.forgotPassword(request);
         return ResponseEntity.ok().build();
     }
 
-    @PatchMapping("reset-password")
+    @PatchMapping("/reset-password")
     public ResponseEntity<Void> resetPassword(@RequestParam String token, @Valid @RequestBody ResetPasswordRequest request) {
         userService.resetPassword(token, request);
         return ResponseEntity.ok().build();
+    }
+
+   @PutMapping("/profile")
+    public ResponseEntity<UserResponse> update(@Valid @RequestBody UpdateUserRequest request) {
+        return ResponseEntity.ok().body(userService.update(request));
+    }
+
+    @PatchMapping("/password")
+    public ResponseEntity<UserResponse> updatePassword(@Valid @RequestBody UpdateUserPassword request) {
+        return ResponseEntity.ok().body(userService.updatePassword(request));
     }
 }
