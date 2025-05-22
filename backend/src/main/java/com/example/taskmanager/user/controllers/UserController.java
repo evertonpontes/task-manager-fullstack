@@ -1,6 +1,8 @@
 package com.example.taskmanager.user.controllers;
 
 import com.example.taskmanager.user.dtos.CreateUserRequest;
+import com.example.taskmanager.user.dtos.ForgotPasswordRequest;
+import com.example.taskmanager.user.dtos.ResetPasswordRequest;
 import com.example.taskmanager.user.dtos.UserResponse;
 import com.example.taskmanager.user.services.UserService;
 import jakarta.validation.Valid;
@@ -15,16 +17,17 @@ import java.nio.charset.StandardCharsets;
 
 
 @RestController
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
 
-    @PostMapping("/api/auth/register")
+    @PostMapping("register")
     public ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest request) {
         return new ResponseEntity<>(userService.create(request), HttpStatus.CREATED);
     }
 
-    @GetMapping("/api/auth/verify-email")
+    @GetMapping("verify-email")
     public RedirectView verifyToken(@RequestParam String token) {
         try {
             userService.verifyToken(token);
@@ -40,5 +43,17 @@ public class UserController {
             String url = "http://localhost:8080/api/auth/login?error=" + encodedMessage;
             return new RedirectView(url);
         }
+    }
+
+    @PostMapping("forgot-password")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        userService.forgotPassword(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("reset-password")
+    public ResponseEntity<Void> resetPassword(@RequestParam String token, @Valid @RequestBody ResetPasswordRequest request) {
+        userService.resetPassword(token, request);
+        return ResponseEntity.ok().build();
     }
 }

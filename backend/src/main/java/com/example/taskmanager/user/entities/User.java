@@ -45,6 +45,8 @@ public class User implements UserDetails {
     private List<Session> sessions = new ArrayList<>();
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Account> accounts = new ArrayList<>();
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PasswordResetToken> passwordResetTokens;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

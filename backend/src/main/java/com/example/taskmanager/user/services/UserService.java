@@ -2,10 +2,13 @@ package com.example.taskmanager.user.services;
 
 import com.example.taskmanager.config.auth.services.TokenService;
 import com.example.taskmanager.user.dtos.CreateUserRequest;
+import com.example.taskmanager.user.dtos.ForgotPasswordRequest;
+import com.example.taskmanager.user.dtos.ResetPasswordRequest;
 import com.example.taskmanager.user.dtos.UserResponse;
 import com.example.taskmanager.user.entities.*;
 import com.example.taskmanager.user.jobs.SendEmailJob;
 import com.example.taskmanager.user.mapper.UserMapper;
+import com.example.taskmanager.user.repositories.PasswordResetRepository;
 import com.example.taskmanager.user.repositories.UserRepository;
 import com.example.taskmanager.user.repositories.VerificationTokenRepository;
 import com.example.taskmanager.utils.exceptions.*;
@@ -29,6 +32,7 @@ public class UserService {
     private final VerificationTokenRepository verificationTokenRepository;
     private final SendEmailJob sendEmailJob;
     private final TokenService tokenService;
+    private final PasswordResetRepository passwordResetRepository;
 
     @Transactional
     public UserResponse create(CreateUserRequest request) {
@@ -81,7 +85,7 @@ public class UserService {
     private void sendVerificationCode(User user) {
         VerificationToken verificationToken = VerificationToken.builder()
                 .id(new VerificationTokenId(user.getEmail(), UUID.randomUUID().toString()))
-                .expiredAt(LocalDateTime.now().plusMinutes(1))
+                .expiredAt(LocalDateTime.now().plusMinutes(15))
                 .build();
 
         verificationTokenRepository.deleteAllByIdIdentifier(user.getEmail());
@@ -108,7 +112,31 @@ public class UserService {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User with email %s not found.".formatted(email)));
         return userMapper.userToResponseData(user);
     }
-    //TODO: create a get user method
+
+    public void forgotPassword(ForgotPasswordRequest request) {
+        String email = request.email().toLowerCase();
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User with email %s not found.".formatted(email)));
+        PasswordResetToken passwordResetToken = PasswordResetToken.builder()
+                .token(PasswordResetToken.generateOtp())
+                .user(user)
+                .used(false)
+                .expiredAt(LocalDateTime.now().plusMinutes(15))
+                .build();
+
+        passwordResetRepository.save(passwordResetToken);
+        sendEmailJob.sendResetPasswordEmail(user, passwordResetToken);
+    }
+
+    public void resetPassword(String token, ResetPasswordRequest request) {
+        PasswordResetToken passwordResetToken = passwordResetRepository.findByToken(token).orElseThrow(() -> new TokenNotFoundException("Password reset token not found."));
+        if (passwordResetToken.getUsed() || passwordResetToken.getExpiredAt().isBefore(LocalDateTime.now())) throw new TokenValidateException("Invalid password reset token provided.");
+
+        User user = passwordResetToken.getUser();
+        user.setPassword(passwordEncoder.encode(request.password()));
+
+        passwordResetToken.setUsed(true);
+        userRepository.save(user);
+    }
     //TODO: create a update user method
     //TODO: create a delete user method
 }
