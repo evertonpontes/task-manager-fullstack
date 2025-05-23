@@ -84,13 +84,20 @@ public class UserService {
 
     private void sendVerificationCode(User user) {
         VerificationToken verificationToken = VerificationToken.builder()
-                .id(new VerificationTokenId(user.getEmail(), UUID.randomUUID().toString()))
-                .expiredAt(LocalDateTime.now().plusMinutes(15))
+                .id(new VerificationTokenId(user.getEmail(), tokenService.generateRandomCode()))
+                .expiredAt(LocalDateTime.now().plusMinutes(10))
                 .build();
 
         verificationTokenRepository.deleteAllByIdIdentifier(user.getEmail());
         VerificationToken savedVerificationToken = verificationTokenRepository.save(verificationToken);
         sendEmailJob.sendWelcomeEmail(user, savedVerificationToken);
+    }
+
+    public UserResponse getUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User authUser = (User) authentication.getPrincipal();
+
+        return userMapper.userToResponseData(authUser);
     }
 
     @Transactional
@@ -117,10 +124,10 @@ public class UserService {
         String email = request.email().toLowerCase();
         User user = userRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User with email %s not found.".formatted(email)));
         PasswordResetToken passwordResetToken = PasswordResetToken.builder()
-                .token(PasswordResetToken.generateOtp())
+                .token(tokenService.generateRandomCode())
                 .user(user)
                 .used(false)
-                .expiredAt(LocalDateTime.now().plusMinutes(15))
+                .expiredAt(LocalDateTime.now().plusMinutes(10))
                 .build();
 
         passwordResetRepository.save(passwordResetToken);

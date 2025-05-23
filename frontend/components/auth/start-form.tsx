@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { GithubIcon, GoogleIcon } from '@/components/icons';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const formSchema = z.object({
   email: z.string().email(),
@@ -35,17 +36,30 @@ export const StartForm = () => {
     router.push(`/auth/sign-up?email=${encodedEmail}`);
   };
 
+  const oauth2LoginLink = (provider: 'google' | 'github') => {
+    return (
+      process.env.NEXT_PUBLIC_API_URL + `/oauth2/authorization/${provider}`
+    );
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Button type="button" variant="outline" className="w-full">
-          <GoogleIcon />
-          Login with Google
-        </Button>
-        <Button type="button" variant="outline" className="w-full">
-          <GithubIcon />
-          Login with Github
-        </Button>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="flex flex-col space-y-6"
+      >
+        <Link href={oauth2LoginLink('google')}>
+          <Button type="button" variant="outline" className="w-full">
+            <GoogleIcon />
+            Login with Google
+          </Button>
+        </Link>
+        <Link href={oauth2LoginLink('github')}>
+          <Button type="button" variant="outline" className="w-full">
+            <GithubIcon />
+            Login with Github
+          </Button>
+        </Link>
         <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
           <span className="relative z-10 bg-background px-2 text-muted-foreground">
             Or continue with

@@ -5,15 +5,21 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.example.taskmanager.utils.exceptions.TokenValidateException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Base64;
 
 @Service
+@RequiredArgsConstructor
 public class TokenService {
+    private final SecureRandom secureRandom;
+    private final Base64.Encoder base64Encoder;
     @Value("${app.jwt.token.secret-key}")
     private String secretKey;
     @Value("${app.jwt.token.issuer}")
@@ -51,5 +57,11 @@ public class TokenService {
 
     public Instant expiresAt() {
         return LocalDateTime.now().plusMinutes(5).toInstant(ZoneOffset.of("-03:00"));
+    }
+
+    public String generateRandomCode() {
+        byte[] randomBytes = new byte[32];
+        secureRandom.nextBytes(randomBytes);
+        return base64Encoder.encodeToString(randomBytes);
     }
 }

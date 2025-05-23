@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useTransition } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,7 +13,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
+import axios, { AxiosError } from 'axios';
+import { ErrorResponse } from '@/data/response';
+import { toast } from 'react-toastify';
 
 type SignUpFormProps = {
   data: {
@@ -35,6 +37,8 @@ const formSchema = z
   });
 
 export const SignUpForm: React.FC<SignUpFormProps> = ({ data }) => {
+  const [isPending, startTransition] = useTransition();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -46,10 +50,26 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ data }) => {
     },
   });
 
-  const router = useRouter();
-
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log(values);
+    startTransition(async () => {
+      try {
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/users/register`,
+          values
+        );
+        toast.success('Verify your email to activate your account.');
+      } catch (error) {
+        if (error instanceof Error) {
+          console.log(error.message);
+        }
+        if (error instanceof AxiosError) {
+          const errorResponse = error as AxiosError<ErrorResponse>;
+          const message = errorResponse.response?.data.errors[0];
+
+          toast.error(message);
+        }
+      }
+    });
   };
 
   return (
@@ -139,8 +159,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ data }) => {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">
-          Sign up for free
+        <Button type="submit" className="w-full" disabled={isPending}>
+          {isPending ? 'Loading...' : 'Sign up for free'}
         </Button>
       </form>
     </Form>

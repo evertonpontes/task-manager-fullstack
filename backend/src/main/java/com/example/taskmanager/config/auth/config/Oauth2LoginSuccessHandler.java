@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -36,6 +37,8 @@ public class Oauth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final AccountRepository accountRepository;
     private final SessionRepository sessionRepository;
     private final TokenService tokenService;
+    @Value("${app.login-success-url}")
+    private String loginSuccessUrl;
 
     @Override
     @Transactional
@@ -85,7 +88,7 @@ public class Oauth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         response.addHeader("Set-Cookie", accessTokenCookie.toString());
         response.addHeader("Set-Cookie", sessionTokenCookie.toString());
-        response.sendRedirect("/api/auth/login-success");
+        response.sendRedirect(loginSuccessUrl);
     }
 
     private String generateSessionToken() {

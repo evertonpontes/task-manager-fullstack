@@ -28,6 +28,8 @@ public class SendEmailJob {
     private final PasswordResetRepository passwordResetRepository;
     @Value("${app.base-url}")
     private String baseUrl;
+    @Value("${app.reset-password-url}")
+    private String resetPasswordUrl;
 
     @Async
     @Transactional
@@ -65,11 +67,10 @@ public class SendEmailJob {
             return;
         }
 
-        String passwordResetLink = baseUrl + "/api/users/reset-password?token=" + passwordResetToken.getToken();
+        String passwordResetLink = resetPasswordUrl + "?token=" + passwordResetToken.getToken();
         Context thymeleafContext = new Context();
         thymeleafContext.setVariable("name", user.getFirstName());
         thymeleafContext.setVariable("email", user.getEmail());
-        thymeleafContext.setVariable("otp",  passwordResetToken.getToken());
         thymeleafContext.setVariable("passwordResetLink",  passwordResetLink);
 
         String htmlBody = templateEngine.process("reset-password", thymeleafContext);
