@@ -1,5 +1,7 @@
 package com.example.taskmanager.user.entities;
 
+import com.example.taskmanager.app.entities.Folder;
+import com.example.taskmanager.app.entities.Project;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -29,24 +31,36 @@ public class User implements UserDetails {
     private String firstName;
     private String lastName;
     private String picture;
+
     @Column(unique = true, nullable = false)
     private String email;
     private String password;
     @Column(nullable = false)
     private Boolean isEmailVerified;
+
     private Integer failedLoginAttempts;
     private LocalDateTime lastFailedLogin;
     private LocalDateTime isLockedUntil;
+
     @CreatedDate
     private LocalDateTime createdAt;
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Session> sessions = new ArrayList<>();
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Account> accounts = new ArrayList<>();
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PasswordResetToken> passwordResetTokens;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Folder> folders;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Project> projects;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
