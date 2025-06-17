@@ -39,6 +39,16 @@ public class AuthService {
     private final UserRepository userRepository;
     SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
 
+    public User getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new CustomAuthenticationException("User not authenticated.");
+        }
+
+        return (User) authentication.getPrincipal();
+    }
+
     public AuthTokensResponse login(LoginUserRequest request) {
         String email = request.email().toLowerCase();
         String password = request.password();

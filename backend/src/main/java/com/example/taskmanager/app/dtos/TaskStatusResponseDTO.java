@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public record TaskStatusResponseDTO(
         UUID id,
-        BigDecimal sortOrder,
+        BigDecimal sortIndex,
         String name,
         String color,
         Boolean isTaskCompleted,

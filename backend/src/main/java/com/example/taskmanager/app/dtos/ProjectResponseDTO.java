@@ -2,12 +2,14 @@ package com.example.taskmanager.app.dtos;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 public record ProjectResponseDTO(
         UUID id,
+        BigDecimal sortIndex,
         String name,
         UUID userId,
         UUID folderId,

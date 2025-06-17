@@ -1,6 +1,6 @@
 CREATE TABLE task_types (
     id UUID DEFAULT gen_random_uuid(),
-    sort_order NUMERIC,
+    sort_index NUMERIC(10,5),
     name VARCHAR(100) NOT NULL,
     color CHAR(7) NOT NULL,
     project_id UUID NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE task_types (
 
 CREATE TABLE task_statuses (
     id UUID DEFAULT gen_random_uuid(),
-    sort_order NUMERIC,
+    sort_index NUMERIC(10,5),
     name VARCHAR(100) NOT NULL,
     color CHAR(7) NOT NULL,
     is_task_completed BOOLEAN DEFAULT false,

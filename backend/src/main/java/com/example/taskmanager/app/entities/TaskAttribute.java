@@ -1,26 +1,27 @@
 package com.example.taskmanager.app.entities;
 
-import com.example.taskmanager.user.entities.User;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
-@Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "projects")
-@Builder
+@MappedSuperclass
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
-public class Project {
+public class TaskAttribute {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -28,18 +29,13 @@ public class Project {
     private BigDecimal sortIndex;
     @Column(nullable = false)
     private String name;
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "folder_id")
-    private Folder folder;
+    @Column(nullable = false)
+    private String color;
     @CreatedDate
     private LocalDateTime createdAt;
     @LastModifiedDate
     private LocalDateTime updatedAt;
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TaskType> taskTypes;
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TaskStatus> taskStatuses;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    private UUID projectId;
 }

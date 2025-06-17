@@ -1,5 +1,6 @@
 CREATE TABLE folders (
     id UUID DEFAULT gen_random_uuid(),
+    sort_index NUMERIC(10,5),
     name VARCHAR(100) NOT NULL,
     user_id UUID NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -10,6 +11,7 @@ CREATE TABLE folders (
 
 CREATE TABLE projects (
     id UUID DEFAULT gen_random_uuid(),
+    sort_index NUMERIC(10,5),
     name VARCHAR(100) NOT NULL,
     user_id UUID NOT NULL,
     folder_id UUID,
