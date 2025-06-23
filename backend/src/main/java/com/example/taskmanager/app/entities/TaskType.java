@@ -15,7 +15,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @EntityListeners(AuditingEntityListener.class)
 @SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @Setter
 public class TaskType extends TaskAttribute {

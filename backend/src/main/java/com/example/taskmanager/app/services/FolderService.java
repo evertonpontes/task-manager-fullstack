@@ -1,7 +1,7 @@
 package com.example.taskmanager.app.services;
 
-import com.example.taskmanager.app.dtos.SaveFolderRequestDTO;
-import com.example.taskmanager.app.dtos.FolderResponseDTO;
+import com.example.taskmanager.app.dtos.folder.SaveFolderRequestDTO;
+import com.example.taskmanager.app.dtos.folder.FolderResponseDTO;
 import com.example.taskmanager.app.entities.Folder;
 import com.example.taskmanager.app.mappers.FolderMapper;
 import com.example.taskmanager.app.repositories.FolderRepository;
@@ -28,7 +28,7 @@ public class FolderService {
 
         User user = authService.getAuthenticatedUser();
 
-        BigDecimal maxSortIndex = folderRepository.findTopSortBySortIndexDesc().orElse(BigDecimal.valueOf(0.0));
+        BigDecimal maxSortIndex = folderRepository.findTopByUserIdSortBySortIndexDesc(user.getId()).orElse(BigDecimal.valueOf(-1.0));
         BigDecimal newSortIndex = maxSortIndex.add(BigDecimal.valueOf(1.0));
 
         Folder folder = folderRepository.save(Folder.builder()

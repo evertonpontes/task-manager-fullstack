@@ -37,5 +37,5 @@ public class TaskAttribute {
     private LocalDateTime updatedAt;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
-    private UUID projectId;
+    private Project project;
 }

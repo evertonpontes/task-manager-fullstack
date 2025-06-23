@@ -3,6 +3,7 @@ package com.example.taskmanager.app.repositories;
 import com.example.taskmanager.app.entities.Folder;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -14,6 +15,6 @@ import java.util.UUID;
 public interface FolderRepository extends JpaRepository<Folder, UUID> {
     List<Folder> findAllByUserId(UUID id);
     
-    @Query("SELECT f.sortIndex FROM Folder f ORDER BY f.sortIndex DESC LIMIT 1")
-    Optional<BigDecimal> findTopSortBySortIndexDesc();
+    @Query("SELECT f.sortIndex FROM Folder f WHERE f.user.id = :userId ORDER BY f.sortIndex DESC LIMIT 1")
+    Optional<BigDecimal> findTopByUserIdSortBySortIndexDesc(@Param("userId") UUID userId);
 }

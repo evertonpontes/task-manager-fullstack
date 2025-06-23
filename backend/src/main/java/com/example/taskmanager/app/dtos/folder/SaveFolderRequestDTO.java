@@ -1,4 +1,4 @@
-package com.example.taskmanager.app.dtos;
+package com.example.taskmanager.app.dtos.folder;
 
 import jakarta.validation.constraints.NotBlank;
 
