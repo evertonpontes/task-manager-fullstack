@@ -2,6 +2,7 @@ package com.example.taskmanager.user.entities;
 
 import com.example.taskmanager.app.entities.Folder;
 import com.example.taskmanager.app.entities.Project;
+import com.example.taskmanager.app.entities.task.Task;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -61,6 +62,9 @@ public class User implements UserDetails {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Project> projects;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Task> tasks;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

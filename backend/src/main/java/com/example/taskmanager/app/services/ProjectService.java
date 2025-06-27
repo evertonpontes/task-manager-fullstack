@@ -165,7 +165,7 @@ public class ProjectService {
         Folder folder = folderRepository.findById(folderId)
                 .orElseThrow(() -> new RuntimeException("Folder not found with id: " + folderId));
 
-        BigDecimal maxSortIndex = projectRepository.findTopByUserIdSortBySortIndexDesc(user.getId())
+        BigDecimal maxSortIndex = projectRepository.findTopByFolderIdSortBySortIndexDesc(folderId)
                 .orElse(BigDecimal.valueOf(-1.0)); // Get the highest sort index
         BigDecimal newSortIndex = maxSortIndex.add(BigDecimal.valueOf(1.0));
 

@@ -1,5 +1,6 @@
 package com.example.taskmanager.app.entities;
 
+import com.example.taskmanager.app.entities.task.Task;
 import com.example.taskmanager.user.entities.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -42,4 +43,6 @@ public class Project {
     private List<TaskType> taskTypes;
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TaskStatus> taskStatuses;
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Task> tasks;
 }
