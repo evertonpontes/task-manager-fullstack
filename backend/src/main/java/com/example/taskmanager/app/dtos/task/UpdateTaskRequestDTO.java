@@ -7,7 +7,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
-public record CreateTaskRequestDTO(
+public record UpdateTaskRequestDTO(
         String title,
         String description,
         TaskPriorityEnum priority,
@@ -17,13 +17,6 @@ public record CreateTaskRequestDTO(
         UUID taskStatusId,
         UUID projectId,
         Boolean repeat,
-        Boolean completed,
-        List<SaveSubTaskRequestDTO> subTasks,
-        List<String> attachments
+        Boolean completed
 ) {
-    public CreateTaskRequestDTO {
-        if (subTasks == null) {
-            subTasks = List.of();
-        }
-    }
 }

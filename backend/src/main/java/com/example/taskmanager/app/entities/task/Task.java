@@ -32,7 +32,8 @@ public class Task {
     private BigDecimal sortIndex;
     private String title;
     private String description;
-    private String priority;
+    @Enumerated(EnumType.STRING)
+    private TaskPriorityEnum priority;
     private LocalDateTime dueDate;
     private LocalTime estimatedTime;
     @CreatedDate
@@ -45,7 +46,7 @@ public class Task {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_type_id")
     private TaskType taskType;
-    @OneToMany(mappedBy = "parent_task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "parentTask", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SubTask> subTasks;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -55,7 +56,7 @@ public class Task {
     private List<LoggedTime> loggedTimes;
 
     @OneToOne(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ScheduledRepeat> scheduledRepeats;
+    private ScheduledRepeat scheduledRepeat;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AttachedFile> attachedFiles;

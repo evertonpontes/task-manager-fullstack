@@ -32,7 +32,7 @@ CREATE TABLE sub_tasks (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    CONSTRAINT fk_tasks_tasks FOREIGN KEY (parent_task_id) REFERENCES tasks(id) ON DELETE CASCADE
+    CONSTRAINT fk_sub_tasks_tasks FOREIGN KEY (parent_task_id) REFERENCES tasks(id) ON DELETE CASCADE
 );
 
 CREATE TABLE scheduled_works (
@@ -44,7 +44,7 @@ CREATE TABLE scheduled_works (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    CONSTRAINT fk_tasks_tasks FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+    CONSTRAINT fk_scheduled_works_tasks FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 );
 
 CREATE TABLE Logged_times (
@@ -58,7 +58,7 @@ CREATE TABLE Logged_times (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    CONSTRAINT fk_tasks_tasks FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+    CONSTRAINT fk_logged_times_tasks FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 );
 
 CREATE TABLE scheduled_repeats (
@@ -69,14 +69,14 @@ CREATE TABLE scheduled_repeats (
     default_status_id UUID,
     due_date TIMESTAMP,
     starting_from DATE,
-    skip_weekends BOOLEAN DEFAULT,
+    skip_weekends BOOLEAN DEFAULT false,
     estimated_time TIME,
     task_id UUID,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    CONSTRAINT fk_tasks_tasks FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
-    CONSTRAINT fk_tasks_task_statuses FOREIGN KEY (default_status) REFERENCES task_statuses(id) ON DELETE CASCADE
+    CONSTRAINT fk_scheduled_repeats_tasks FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+    CONSTRAINT fk_scheduled_repeats_task_statuses FOREIGN KEY (default_status_id) REFERENCES task_statuses(id) ON DELETE CASCADE
 );
 
 CREATE TABLE attached_files (
@@ -87,5 +87,5 @@ CREATE TABLE attached_files (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    CONSTRAINT fk_tasks_tasks FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+    CONSTRAINT fk_attached_files_tasks FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 );

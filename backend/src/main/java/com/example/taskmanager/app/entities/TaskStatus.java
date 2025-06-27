@@ -22,9 +22,9 @@ import java.util.List;
 @Setter
 public class TaskStatus extends TaskAttribute {
     private Boolean isTaskCompleted;
-    @OneToMany(mappedBy = "task_status", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "taskStatus", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks;
 
-    @OneToMany(mappedBy = "default_status", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "defaultStatus", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ScheduledRepeat> scheduledRepeats;
 }

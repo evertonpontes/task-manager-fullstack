@@ -27,7 +27,8 @@ public class ScheduledRepeat {
     private UUID id;
     @Column(name = "sort_index", precision = 10, scale = 5)
     private BigDecimal sortIndex;
-    private String type;
+    @Enumerated(EnumType.STRING)
+    private RepeatTypeEnum type;
     private String action;
     private LocalDate end;
     @ManyToOne(fetch = FetchType.LAZY)

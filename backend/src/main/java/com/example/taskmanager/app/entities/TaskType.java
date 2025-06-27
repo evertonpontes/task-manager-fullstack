@@ -19,6 +19,6 @@ import java.util.List;
 @Getter
 @Setter
 public class TaskType extends TaskAttribute {
-    @OneToMany(mappedBy = "task_type", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "taskType", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks;
 }
