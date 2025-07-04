@@ -6,12 +6,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface TaskTypeRepository extends JpaRepository<TaskType, UUID> {
-    @Query("SELECT tt.sortIndex FROM TaskType tt WHERE tt.project.id = :projectId ORDER BY tt.sortIndex DESC LIMIT 1")
-    Optional<BigDecimal> findTopByProjectIdSortBySortIndexDesc(@Param("projectId") UUID projectId);
+    @Query("SELECT MAX(tt.orderIndex) FROM TaskType tt WHERE tt.node.id = :nodeId")
+    Optional<Long> findMaxOrderIndexByNodeId(@Param("nodeId") UUID nodeId);
 }

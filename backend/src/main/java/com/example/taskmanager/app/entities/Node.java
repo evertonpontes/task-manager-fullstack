@@ -15,34 +15,42 @@ import java.util.UUID;
 
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "projects")
+@Table(name = "nodes")
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
-public class Project {
+public class Node {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    @Column(name = "sort_index", precision = 10, scale = 5)
-    private BigDecimal sortIndex;
+    private Long rank;
+    @Enumerated(EnumType.STRING)
+    private NodeKindEnum kind;
     @Column(nullable = false)
     private String name;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "folder_id")
-    private Folder folder;
     @CreatedDate
     private LocalDateTime createdAt;
     @LastModifiedDate
     private LocalDateTime updatedAt;
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_node_id")
+    private Node parentNode;
+
+    @OneToMany(mappedBy = "parentNode", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Node> children;
+
+    @OneToMany(mappedBy = "node", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TaskType> taskTypes;
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+
+    @OneToMany(mappedBy = "node", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TaskStatus> taskStatuses;
+
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks;
 }

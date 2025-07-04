@@ -6,9 +6,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.UUID;
 
 @Entity
@@ -23,11 +21,12 @@ public class SubTask {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    @Column(name = "sort_index", precision = 10, scale = 5)
-    private BigDecimal sortIndex;
+    private Long rank;
     private String title;
+    @Enumerated(EnumType.STRING)
+    private StatusEnum status;
     private LocalDateTime dueDate;
-    private LocalTime estimatedTime;
+    private Integer estimatedTime;
     @CreatedDate
     private LocalDateTime createdAt;
     @LastModifiedDate
@@ -35,5 +34,4 @@ public class SubTask {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_task_id")
     private Task parentTask;
-    private Boolean completed;
 }

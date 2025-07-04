@@ -10,7 +10,6 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -25,17 +24,16 @@ public class TaskAttribute {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    @Column(name = "sort_index", precision = 10, scale = 5)
-    private BigDecimal sortIndex;
+    private Long orderIndex;
     @Column(nullable = false)
     private String name;
-    @Column(nullable = false)
-    private String color;
+    @Enumerated(EnumType.STRING)
+    private ColorTypesEnum color;
     @CreatedDate
     private LocalDateTime createdAt;
     @LastModifiedDate
     private LocalDateTime updatedAt;
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
-    private Project project;
+    @JoinColumn(name = "node_id", nullable = false)
+    private Node node;
 }

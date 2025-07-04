@@ -4,7 +4,6 @@ import com.example.taskmanager.app.dtos.task.SaveSubTaskRequestDTO;
 import com.example.taskmanager.app.dtos.task.CreateTaskRequestDTO;
 import com.example.taskmanager.app.dtos.task.TaskResponseDTO;
 import com.example.taskmanager.app.dtos.task.UpdateTaskRequestDTO;
-import com.example.taskmanager.app.entities.Project;
 import com.example.taskmanager.app.entities.TaskStatus;
 import com.example.taskmanager.app.entities.TaskType;
 import com.example.taskmanager.app.entities.task.Task;
@@ -19,7 +18,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -31,7 +29,6 @@ public class TaskService {
     private final TaskTypeRepository taskTypeRepository;
     private final TaskStatusRepository taskStatusRepository;
     private final SubTaskRepository subTaskRepository;
-    private final ProjectRepository projectRepository;
     private final TaskMapper taskMapper;
 
     public TaskResponseDTO createTask(CreateTaskRequestDTO request) {
@@ -45,11 +42,6 @@ public class TaskService {
         TaskStatus taskStatus = taskStatusRepository.findById(request.taskStatusId())
                 .orElseThrow(() -> new EntityNotFoundException("TaskStatus not found with id: " + request.taskStatusId()));
 
-        Project project = projectRepository.findById(request.projectId())
-                .orElseThrow(() -> new EntityNotFoundException("Project not found with id: " + request.projectId()));
-
-        BigDecimal maxSortIndex = taskRepository.findTopByProjectIdSortBySortIndexDesc(project.getId()).orElse(BigDecimal.valueOf(-1.0));
-        BigDecimal newSortIndex = maxSortIndex.add(BigDecimal.valueOf(1.0));
 
         // Create main task
         Task task = Task.builder()
@@ -57,12 +49,9 @@ public class TaskService {
                 .description(request.description())
                 .priority(request.priority())
                 .dueDate(request.dueDate())
-                .estimatedTime(request.estimatedTime())
                 .taskType(taskType)
                 .taskStatus(taskStatus)
                 .user(currentUser)
-                .sortIndex(newSortIndex)
-                .project(project)
                 .build();
         
         // Save the main task first to generate an ID
@@ -81,28 +70,21 @@ public class TaskService {
             subTaskRepository.saveAll(subTasks);
         }
         
-        return taskMapper.taskToTaskResponseDTO(savedTask);
+        return null;
     }
     
     private SubTask mapToSubTask(Task task, SaveSubTaskRequestDTO dto) {
-        BigDecimal maxSortIndex = subTaskRepository.findTopByTaskIdSortBySortIndexDesc(task.getId()).orElse(BigDecimal.valueOf(-1.0));
-        BigDecimal newSortIndex = maxSortIndex.add(BigDecimal.valueOf(1.0));
 
         return SubTask.builder()
                 .title(dto.title())
-                .dueDate(dto.dueDate())
-                .estimatedTime(dto.estimatedTime())
-                .completed(false)
-                .sortIndex(newSortIndex) // Default sort index
+                .dueDate(dto.dueDate())// Default sort index
                 .build();
     }
 
     public List<TaskResponseDTO> getAllTasksForCurrentUser() {
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         List<Task> tasks = currentUser.getTasks();
-        return tasks.stream()
-                .map(taskMapper::taskToTaskResponseDTO)
-                .collect(Collectors.toList());
+        return null;
     }
 
     /**
@@ -124,7 +106,7 @@ public class TaskService {
             throw new UnauthorizedAccessException("You don't have permission to access this task");
         }
         
-        return taskMapper.taskToTaskResponseDTO(task);
+        return null;
     }
 
     /**
@@ -160,9 +142,6 @@ public class TaskService {
         if (request.dueDate() != null) {
             task.setDueDate(request.dueDate());
         }
-        if (request.estimatedTime() != null) {
-            task.setEstimatedTime(request.estimatedTime());
-        }
         if (request.taskTypeId() != null) {
             TaskType taskType = taskTypeRepository.findById(request.taskTypeId())
                     .orElseThrow(() -> new EntityNotFoundException("TaskType not found with id: " + request.taskTypeId()));
@@ -173,21 +152,10 @@ public class TaskService {
                     .orElseThrow(() -> new EntityNotFoundException("TaskStatus not found with id: " + request.taskStatusId()));
             task.setTaskStatus(taskStatus);
         }
-        if (request.projectId() != null) {
-            Project project = projectRepository.findById(request.projectId())
-                    .orElseThrow(() -> new EntityNotFoundException("Project not found with id: " + request.projectId()));
-            task.setProject(project);
-        }
-        if (request.repeat() != null) {
-            task.setRepeat(request.repeat());
-        }
-        if (request.completed() != null) {
-            task.setCompleted(request.completed());
-        }
         
         // Save the updated task
         Task updatedTask = taskRepository.save(task);
-        return taskMapper.taskToTaskResponseDTO(updatedTask);
+        return null;
     }
 
     /**
@@ -235,16 +203,14 @@ public class TaskService {
         SubTask subTask = SubTask.builder()
                 .title(request.title())
                 .dueDate(request.dueDate())
-                .estimatedTime(request.estimatedTime())
                 .parentTask(parentTask)
-                .sortIndex(calculateNewSortIndex(parentTask.getId()))
                 .build();
         
         // Add subtask to parent's collection and save
         parentTask.getSubTasks().add(subTask);
         Task updatedTask = taskRepository.save(parentTask);
         
-        return taskMapper.taskToTaskResponseDTO(updatedTask);
+        return null;
     }
     
     /**
@@ -281,13 +247,10 @@ public class TaskService {
         if (request.dueDate() != null) {
             subTask.setDueDate(request.dueDate());
         }
-        if (request.estimatedTime() != null) {
-            subTask.setEstimatedTime(request.estimatedTime());
-        }
         
         // Save the parent task to cascade the changes to subtasks
         Task updatedTask = taskRepository.save(parentTask);
-        return taskMapper.taskToTaskResponseDTO(updatedTask);
+        return null;
     }
     
     /**
@@ -321,17 +284,6 @@ public class TaskService {
         
         // Save the parent task to cascade the deletion of the subtask
         Task updatedTask = taskRepository.save(parentTask);
-        return taskMapper.taskToTaskResponseDTO(updatedTask);
-    }
-    
-    /**
-     * Calculates the sort index for a new subtask.
-     * @param taskId ID of the parent task
-     * @return BigDecimal representing the new sort index
-     */
-    private BigDecimal calculateNewSortIndex(UUID taskId) {
-        BigDecimal maxSortIndex = subTaskRepository.findTopByTaskIdSortBySortIndexDesc(taskId)
-                .orElse(BigDecimal.valueOf(-1.0));
-        return maxSortIndex.add(BigDecimal.ONE);
+        return null;
     }
 }

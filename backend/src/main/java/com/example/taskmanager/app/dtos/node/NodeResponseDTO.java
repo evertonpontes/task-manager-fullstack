@@ -1,20 +1,22 @@
-package com.example.taskmanager.app.dtos.project;
+package com.example.taskmanager.app.dtos.node;
 
 import com.example.taskmanager.app.dtos.attributes.TaskStatusResponseDTO;
 import com.example.taskmanager.app.dtos.attributes.TaskTypeResponseDTO;
+import com.example.taskmanager.app.entities.NodeKindEnum;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-public record ProjectResponseDTO(
+public record NodeResponseDTO(
         UUID id,
-        BigDecimal sortIndex,
+        Long rank,
+        NodeKindEnum kind,
         String name,
+        UUID parentNodeId,
         UUID userId,
-        UUID folderId,
+        List<NodeResponseDTO> children,
         List<TaskTypeResponseDTO> taskTypes,
         List<TaskStatusResponseDTO> taskStatuses,
         @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")

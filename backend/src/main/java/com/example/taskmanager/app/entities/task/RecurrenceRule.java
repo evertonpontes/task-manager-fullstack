@@ -7,37 +7,29 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.UUID;
 
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "scheduled_works")
+@Table(name = "recurrence_rules")
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
-public class ScheduledRepeat {
+public class RecurrenceRule {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    @Column(name = "sort_index", precision = 10, scale = 5)
-    private BigDecimal sortIndex;
-    @Enumerated(EnumType.STRING)
-    private RepeatTypeEnum type;
-    private String action;
-    private LocalDate end;
+    private String rule;
+    private String rule_text;
+    private String frequency;
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "default_status_id")
-    private TaskStatus defaultStatus;
-    private LocalDateTime dueDate;
-    private LocalDate statingFrom;
-    private Boolean skipWeekends;
-    private LocalTime estimatedTime;
+    @JoinColumn(name = "initial_task_status_id")
+    private TaskStatus initialTaskStatus;
+    private Integer dueDateShift;
+    private Integer estimatedTime;
     @CreatedDate
     private LocalDateTime createdAt;
     @LastModifiedDate

@@ -1,6 +1,6 @@
 package com.example.taskmanager.app.entities.task;
 
-import com.example.taskmanager.app.entities.Project;
+import com.example.taskmanager.app.entities.Node;
 import com.example.taskmanager.app.entities.TaskStatus;
 import com.example.taskmanager.app.entities.TaskType;
 import com.example.taskmanager.user.entities.User;
@@ -12,7 +12,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,47 +27,50 @@ public class Task {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    @Column(name = "sort_index", precision = 10, scale = 5)
-    private BigDecimal sortIndex;
+    @Column(name = "common_rank", precision = 20, scale = 0)
+    private BigDecimal commonRank;
+    private Long statusRank;
+    private LocalDateTime startAt;
     private String title;
     private String description;
     @Enumerated(EnumType.STRING)
     private TaskPriorityEnum priority;
     private LocalDateTime dueDate;
-    private LocalTime estimatedTime;
+    private Integer spentTime;
+    private Integer estimatedTime;
     @CreatedDate
     private LocalDateTime createdAt;
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id")
+    private Node project;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_status_id")
     private TaskStatus taskStatus;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_type_id")
     private TaskType taskType;
+
     @OneToMany(mappedBy = "parentTask", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SubTask> subTasks;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ScheduledWork> scheduledWorks;
-
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<LoggedTime> loggedTimes;
+    private List<TimeBlock> timeBlocks;
 
     @OneToOne(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
-    private ScheduledRepeat scheduledRepeat;
+    private RecurrenceRule recurrenceRules;
+
+    @OneToOne(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    private RepeatableRule repeatableRules;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AttachedFile> attachedFiles;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id")
-    private Project project;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
-
-    private Boolean repeat;
-    private Boolean completed;
 }

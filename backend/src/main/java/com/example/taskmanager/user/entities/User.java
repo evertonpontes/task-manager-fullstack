@@ -1,7 +1,6 @@
 package com.example.taskmanager.user.entities;
 
-import com.example.taskmanager.app.entities.Folder;
-import com.example.taskmanager.app.entities.Project;
+import com.example.taskmanager.app.entities.Node;
 import com.example.taskmanager.app.entities.task.Task;
 import jakarta.persistence.*;
 import lombok.*;
@@ -58,10 +57,7 @@ public class User implements UserDetails {
     private List<PasswordResetToken> passwordResetTokens;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Folder> folders;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Project> projects;
+    private List<Node> nodes;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks;

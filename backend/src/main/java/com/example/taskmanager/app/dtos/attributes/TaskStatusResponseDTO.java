@@ -1,18 +1,19 @@
 package com.example.taskmanager.app.dtos.attributes;
 
+import com.example.taskmanager.app.entities.TaskStatusKindEnum;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record TaskStatusResponseDTO(
         UUID id,
-        BigDecimal sortIndex,
+        Long orderIndex,
         String name,
+        TaskStatusKindEnum kind,
         String color,
-        Boolean isTaskCompleted,
-        UUID projectId,
+        Boolean deletable,
+        Boolean draggable,
         @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
         LocalDateTime createdAt,
         @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")

@@ -1,6 +1,7 @@
 package com.example.taskmanager.app.entities;
 
-import com.example.taskmanager.app.entities.task.ScheduledRepeat;
+import com.example.taskmanager.app.entities.task.RecurrenceRule;
+import com.example.taskmanager.app.entities.task.RepeatableRule;
 import com.example.taskmanager.app.entities.task.Task;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -21,10 +22,16 @@ import java.util.List;
 @Getter
 @Setter
 public class TaskStatus extends TaskAttribute {
-    private Boolean isTaskCompleted;
+    @Enumerated(EnumType.STRING)
+    private TaskStatusKindEnum kind;
+    private Boolean deletable;
+    private Boolean draggable;
     @OneToMany(mappedBy = "taskStatus", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks;
 
-    @OneToMany(mappedBy = "defaultStatus", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ScheduledRepeat> scheduledRepeats;
+    @OneToMany(mappedBy = "initialTaskStatus", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RecurrenceRule> recurrenceRules;
+
+    @OneToMany(mappedBy = "initialTaskStatus", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RepeatableRule> repeatableRules;
 }
