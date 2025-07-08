@@ -157,7 +157,7 @@ export function removeChildrenOf(items: FlattenedItem[], ids: string[]) {
 
     return items.filter((item) => {
         if (item.parentNodeId && excludeParentIds.includes(item.parentNodeId)) {
-            if (item.children.length) {
+            if (item?.children?.length) {
                 excludeParentIds.push(item.id);
             }
             return false;
@@ -178,7 +178,7 @@ export function setProperty<T extends keyof NodeType>(
             continue;
         }
 
-        if (item.children.length) {
+        if (item?.children?.length) {
             item.children = setProperty(item.children, id, property, setter);
         }
     }

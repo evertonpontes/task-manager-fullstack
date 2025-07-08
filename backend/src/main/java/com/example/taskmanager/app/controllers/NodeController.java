@@ -59,6 +59,12 @@ public class NodeController {
         return new ResponseEntity<>(nodeService.updateNodeById(id, request), HttpStatus.OK);
     }
 
+    @PostMapping("/{id}")
+    public ResponseEntity<NodeResponseDTO> duplicateNode(
+            @PathVariable UUID id) {
+        return new ResponseEntity<>(nodeService.duplicateNode(id), HttpStatus.OK);
+    }
+
     @PutMapping("/{id}/taskStatuses/{taskStatusId}")
     public ResponseEntity<NodeResponseDTO> updateTaskStatus(@PathVariable UUID id, @PathVariable UUID taskStatusId, @Valid @RequestBody UpdateTaskAttributeRequestDTO request) {
         return new ResponseEntity<>(nodeService.updateTaskStatus(id, taskStatusId, request), HttpStatus.OK);

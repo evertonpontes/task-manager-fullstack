@@ -9,14 +9,6 @@ import {
 import { DropdownMenuGroup } from "@radix-ui/react-dropdown-menu";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuGroup,
-    ContextMenuItem,
-    ContextMenuSeparator,
-    ContextMenuTrigger,
-} from "./ui/context-menu";
 
 export type group = {
     items: {
@@ -30,15 +22,29 @@ export type group = {
 interface SidebarDropdownProps {
     children: React.ReactNode;
     groups: group[];
+    disabled?: boolean;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
 }
 
 export const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
-    children,
     groups,
+    disabled,
+    children,
+    open,
+    onOpenChange,
 }) => {
+    if (disabled) <>{children}</>;
+
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
+        <DropdownMenu modal={false} open={open} onOpenChange={onOpenChange}>
+            <DropdownMenuTrigger asChild>
+                {children ? (
+                    children
+                ) : (
+                    <button className="sr-only">Action</button>
+                )}
+            </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 py-1.5 px-2.5" align="start">
                 {groups.map((group, index) => (
                     <div key={index}>
@@ -51,7 +57,7 @@ export const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
                                 >
                                     <item.icon
                                         className={cn(
-                                            "size-5 shrink-0",
+                                            "stroke-1 size-5 shrink-0",
                                             item.kind === "Destructive"
                                                 ? "stroke-destructive"
                                                 : "stroke-muted-foreground"
@@ -66,42 +72,5 @@ export const SidebarDropdown: React.FC<SidebarDropdownProps> = ({
                 ))}
             </DropdownMenuContent>
         </DropdownMenu>
-    );
-};
-
-export const SidebarContext: React.FC<SidebarDropdownProps> = ({
-    children,
-    groups,
-}) => {
-    return (
-        <ContextMenu>
-            <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-            <ContextMenuContent className="w-56 py-1.5 px-2.5">
-                {groups.map((group, index) => (
-                    <div key={index}>
-                        <ContextMenuGroup className="gap-0.5">
-                            {group.items.map((item, index) => (
-                                <ContextMenuItem
-                                    key={index}
-                                    onClick={item.onClick}
-                                    className="h-10 flex items-center gap-2 py-1.5 px-2.5 cursor-pointer"
-                                >
-                                    <item.icon
-                                        className={cn(
-                                            "size-5 shrink-0",
-                                            item.kind === "Destructive"
-                                                ? "stroke-destructive"
-                                                : "stroke-muted-foreground"
-                                        )}
-                                    />
-                                    <span className="ml-2">{item.label}</span>
-                                </ContextMenuItem>
-                            ))}
-                        </ContextMenuGroup>
-                        {index < groups.length - 1 && <ContextMenuSeparator />}
-                    </div>
-                ))}
-            </ContextMenuContent>
-        </ContextMenu>
     );
 };

@@ -4,7 +4,7 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { UserResponse } from "@/hooks/useAuth";
+import { UserResponse } from "@/hooks/use-auth";
 import { createServer } from "@/lib/api/server";
 import { AuthProvider } from "@/providers/auth-provider";
 import { cookies } from "next/headers";

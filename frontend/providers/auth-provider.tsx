@@ -1,7 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { useAuth, useAutoRefreshToken, UserResponse } from "@/hooks/useAuth";
+import { useAuth, useAutoRefreshToken, UserResponse } from "@/hooks/use-auth";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 

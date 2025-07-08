@@ -17,18 +17,21 @@ import { Folder, Plus, SquarePlus } from "lucide-react";
 import { SortableItem } from "./sortable-item";
 import { UniqueIdentifier } from "@dnd-kit/core";
 import { group, SidebarDropdown } from "./sidebar-options";
-import { Button } from "./ui/button";
+import { useNodeModal } from "@/hooks/use-node-modal";
+import { useState } from "react";
 
 interface SortableTreeProps {
     flat: FlattenedItem[];
     items: UniqueIdentifier[];
     onCollapse: (id: string) => void;
+    isDragging?: boolean;
 }
 
 export const SortableTree: React.FC<SortableTreeProps> = ({
     flat,
     items,
     onCollapse,
+    isDragging,
 }) => {
     const projectMenu: group[] = [
         {
@@ -36,18 +39,35 @@ export const SortableTree: React.FC<SortableTreeProps> = ({
                 {
                     label: "Create project",
                     icon: SquarePlus,
-                    onClick: () => {},
+                    onClick: () => handleCreateProject(),
                     kind: "Default",
                 },
                 {
                     label: "Create folder",
                     icon: Folder,
-                    onClick: () => {},
+                    onClick: () => handleCreateFolder(),
                     kind: "Default",
                 },
             ],
         },
     ];
+
+    const [openDropdown, setOpenDropdown] = useState(false);
+    const setOpenModal = useNodeModal((state) => state.setOpen);
+    const setModalType = useNodeModal((state) => state.setModalType);
+    const setKind = useNodeModal((state) => state.setKind);
+
+    function handleCreateProject() {
+        setKind("Project");
+        setModalType("create");
+        setOpenModal(true);
+    }
+
+    function handleCreateFolder() {
+        setKind("Folder");
+        setModalType("create");
+        setOpenModal(true);
+    }
 
     return (
         <SidebarGroup>
@@ -68,6 +88,7 @@ export const SortableTree: React.FC<SortableTreeProps> = ({
                                 key={item.id}
                                 item={item}
                                 onCollapse={() => onCollapse(item.id)}
+                                isDragging={isDragging}
                             />
                         ))}
                     </SortableContext>

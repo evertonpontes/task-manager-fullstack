@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bounce, ToastContainer } from "react-toastify";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { ModalProvider } from "@/providers/modal-provider";
 
 const inter = Inter({
     variable: "--font-inter",
@@ -35,6 +36,7 @@ export default function RootLayout({
                     theme="light"
                     transition={Bounce}
                 />
+                <ModalProvider />
             </body>
         </html>
     );

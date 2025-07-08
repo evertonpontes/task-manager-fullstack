@@ -36,133 +36,49 @@ import {
     removeChildrenOf,
     setProperty,
 } from "@/lib/utilities";
+import axios from "axios";
+import { useAuth } from "@/hooks/use-auth";
+import { useNodeStore } from "@/hooks/use-node-store";
+import { toast } from "react-toastify";
 
-const sampleNodes: NodeType[] = [
-    {
-        id: "1",
-        rank: 10000,
-        name: "E-commerce App",
-        kind: "Project",
-        parentNodeId: null,
-        userId: "1",
-        children: [],
-        taskTypes: [],
-        taskStatuses: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    },
-    {
-        id: "2",
-        rank: 20000,
-        name: "Portfolio",
-        kind: "Project",
-        parentNodeId: null,
-        userId: "1",
-        children: [],
-        taskTypes: [],
-        taskStatuses: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    },
-    {
-        id: "3",
-        rank: 30000,
-        name: "Technical Documentation",
-        kind: "Project",
-        parentNodeId: null,
-        userId: "1",
-        children: [],
-        taskTypes: [],
-        taskStatuses: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    },
-    {
-        id: "4",
-        rank: 40000,
-        name: "Design System",
-        kind: "Folder",
-        parentNodeId: null,
-        userId: "1",
-        children: [
-            {
-                id: "5",
-                rank: 10000,
-                name: "Typography",
-                kind: "Project",
-                parentNodeId: "4",
-                userId: "1",
-                children: [],
-                taskTypes: [],
-                taskStatuses: [],
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            },
-            {
-                id: "6",
-                rank: 20000,
-                name: "Colors",
-                kind: "Project",
-                parentNodeId: "4",
-                userId: "1",
-                children: [],
-                taskTypes: [],
-                taskStatuses: [],
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            },
-            {
-                id: "7",
-                rank: 30000,
-                name: "Buttons",
-                kind: "Project",
-                parentNodeId: "4",
-                userId: "1",
-                children: [],
-                taskTypes: [],
-                taskStatuses: [],
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            },
-        ],
-        taskTypes: [],
-        taskStatuses: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    },
-    {
-        id: "8",
-        rank: 50000,
-        name: "New Folder",
-        kind: "Folder",
-        parentNodeId: null,
-        userId: "1",
-        children: [],
-        taskTypes: [],
-        taskStatuses: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    },
-];
 export const AppSidebar = () => {
     const [isLoaded, setIsLoaded] = useState(false);
-    const [nodes, setNodes] = useState(orderByRank(sampleNodes));
     const [activeId, setActiveId] = useState<string | null>(null);
     const [overId, setOverId] = useState<string | null>(null);
     const [offsetLeft, setOffsetLeft] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
+    const nodeStored = useNodeStore((state) => state.data);
+    const setNodeData = useNodeStore((state) => state.setData);
+    const token = useAuth((state) => state.token);
 
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            setIsLoaded(true);
+        async function fetchNodes() {
+            try {
+                const response = await axios.get<NodeType[]>("/api/nodes", {
+                    withCredentials: true,
+                });
+                const data = response.data;
+                const nodes = data.map((node) => ({
+                    ...node,
+                    collapsed: false,
+                }));
+                setNodeData(orderByRank(nodes));
+            } catch (error) {
+                console.error("Error fetching nodes:", error);
+            } finally {
+                setIsLoaded(true);
+            }
         }
-    }, []);
+
+        if (!token) return;
+        fetchNodes();
+    }, [setNodeData, token]);
 
     const flattenedItems = useMemo(() => {
-        const flattenedTree = flattenTree(nodes);
+        const flattenedTree: FlattenedItem[] = flattenTree(nodeStored);
         const collapsedItems = flattenedTree.reduce<string[]>(
             (acc, { children, collapsed, id }) =>
-                collapsed && children.length ? [...acc, id] : acc,
+                collapsed && children?.length ? [...acc, id] : acc,
             []
         );
 
@@ -172,7 +88,7 @@ export const AppSidebar = () => {
                 ? [activeId, ...collapsedItems]
                 : collapsedItems
         );
-    }, [activeId, isDragging, nodes]);
+    }, [activeId, isDragging, nodeStored]);
 
     const projected =
         activeId && overId
@@ -182,8 +98,7 @@ export const AppSidebar = () => {
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                delay: 100,
-                tolerance: 10,
+                distance: 5,
             },
         }),
         useSensor(KeyboardSensor, {
@@ -197,13 +112,12 @@ export const AppSidebar = () => {
     );
 
     const handleDragStart = ({ active: { id: activeId } }: DragStartEvent) => {
+        setIsDragging(true);
         setActiveId(activeId.toString());
         setOverId(activeId.toString());
-        document.body.style.setProperty("cursor", "grabbing");
     };
 
     const handleDragMove = ({ delta }: DragMoveEvent) => {
-        setIsDragging(true);
         setOffsetLeft(delta.x);
     };
 
@@ -218,7 +132,7 @@ export const AppSidebar = () => {
         if (over && projected) {
             const { depth, parentId, rank } = projected;
             const clonedItems: FlattenedItem[] = JSON.parse(
-                JSON.stringify(flattenTree(nodes))
+                JSON.stringify(flattenTree(nodeStored))
             );
             const overIndex = clonedItems.findIndex(
                 (item) => item.id === over.id
@@ -251,8 +165,12 @@ export const AppSidebar = () => {
                 ...itemsWithoutSubtree.slice(overIndex),
             ];
 
+            const updatedItem = newItems[overIndex];
+
+            onSubmitSortable(updatedItem);
+
             const rebuiltTree = buildTree(newItems);
-            setNodes(rebuiltTree);
+            setNodeData(rebuiltTree);
         }
     }
 
@@ -261,17 +179,34 @@ export const AppSidebar = () => {
         setOverId(null);
         setOffsetLeft(0);
         setIsDragging(false);
-
-        document.body.style.setProperty("cursor", "");
     }
 
     function handleCollapse(id: string) {
-        setNodes((items) => {
-            const cloned: NodeType[] = JSON.parse(JSON.stringify(items));
-            return setProperty(cloned, id, "collapsed", (value) => {
-                return !value;
-            });
+        const cloned: NodeType[] = nodeStored;
+        const updatedNodes = setProperty(cloned, id, "collapsed", (value) => {
+            return !value;
         });
+
+        setNodeData(updatedNodes);
+    }
+
+    async function onSubmitSortable(item: FlattenedItem) {
+        const data = {
+            name: item.name,
+            rank: item.rank,
+            parentNodeId: item.parentNodeId,
+        };
+
+        try {
+            await axios.put<NodeType>(`/api/nodes/${item.id}`, data, {
+                withCredentials: true,
+            });
+        } catch (error) {
+            console.error("Error fetching nodes:", error);
+            toast.error(`${item.kind} update failed.`, {
+                position: "bottom-left",
+            });
+        }
     }
 
     if (!isLoaded) return null;
@@ -308,6 +243,7 @@ export const AppSidebar = () => {
                         items={dataIds}
                         flat={flattenedItems}
                         onCollapse={handleCollapse}
+                        isDragging={isDragging}
                     />
                 </DndContext>
             </SidebarContent>

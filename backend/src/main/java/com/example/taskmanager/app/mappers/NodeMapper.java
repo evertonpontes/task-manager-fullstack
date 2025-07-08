@@ -10,4 +10,6 @@ public interface NodeMapper {
     @Mapping(source = "user.id", target = "userId")
     @Mapping(source = "parentNode.id", target = "parentNodeId")
     NodeResponseDTO nodeToNodeResponseDTO(Node node);
+
+    Node cloneNode(Node node);
 }

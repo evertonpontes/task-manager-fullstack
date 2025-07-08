@@ -21,6 +21,7 @@ export function decodeJwt(token: string): { exp: number } | null {
 }
 
 export function flattenTree(items: NodeType[], depth = 0): FlattenedItem[] {
+    if (!items) return [];
     return items.reduce<FlattenedItem[]>((acc, item) => {
         return [
             ...acc,

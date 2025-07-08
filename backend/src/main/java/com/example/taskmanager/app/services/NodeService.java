@@ -6,6 +6,7 @@ import com.example.taskmanager.app.dtos.node.CreateNodeRequestDTO;
 import com.example.taskmanager.app.dtos.node.NodeResponseDTO;
 import com.example.taskmanager.app.dtos.node.UpdateNodeRequestDTO;
 import com.example.taskmanager.app.entities.*;
+import com.example.taskmanager.app.entities.task.Task;
 import com.example.taskmanager.app.mappers.NodeMapper;
 import com.example.taskmanager.app.repositories.NodeRepository;
 import com.example.taskmanager.app.repositories.TaskStatusRepository;
@@ -237,8 +238,9 @@ public class NodeService {
 
         if (parentNodeId == null) {
             node.setParentNode(null);
-        } else if (!parentNodeId.equals(node.getParentNode().getId())) {
+        } else {
             Node parentNode = nodeRepository.findById(parentNodeId).orElse(null);
+            System.out.println("parentNode: " + parentNode);
 
             if (parentNode != null && !parentNode.getUser().getId().equals(user.getId())) {
                 throw new UnauthorizedAccessException("You don't have permission to access this node");
@@ -250,6 +252,54 @@ public class NodeService {
         Node updatedNode = nodeRepository.save(node);
         
         return nodeMapper.nodeToNodeResponseDTO(updatedNode);
+    }
+
+    public NodeResponseDTO duplicateNode(UUID id) {
+        User user = authService.getAuthenticatedUser();
+        Node node = nodeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Node not found with id: " + id));
+
+        if (!node.getUser().getId().equals(user.getId())) {
+            throw new UnauthorizedAccessException("You don't have permission to duplicate this node");
+        }
+
+        Long maxRank = nodeRepository.findMaxRankForRootNodes(user.getId()).orElse(0L);
+        Long newRank = maxRank + 10000L;
+
+        Node nodeCopy = Node.builder()
+                .name(node.getName() + " - " + "Copy")
+                .user(user)
+                .rank(newRank)
+                .kind(node.getKind())
+                .build();
+
+        List<TaskStatus> taskStatuses = node.getTaskStatuses().stream()
+                .map(ts -> TaskStatus.builder()
+                        .name(ts.getName())
+                        .color(ts.getColor())
+                        .orderIndex(ts.getOrderIndex())
+                        .kind(ts.getKind())
+                        .draggable(ts.getDraggable())
+                        .deletable(ts.getDeletable())
+                        .node(nodeCopy)
+                        .build())
+                .collect(Collectors.toList());
+
+        List<TaskType> taskTypes = node.getTaskTypes().stream()
+                .map(tt -> TaskType.builder()
+                        .name(tt.getName())
+                        .color(tt.getColor())
+                        .orderIndex(tt.getOrderIndex())
+                        .node(nodeCopy)
+                        .build())
+                .collect(Collectors.toList());
+
+        nodeCopy.setTaskStatuses(taskStatuses);
+        nodeCopy.setTaskTypes(taskTypes);
+
+        Node savedNode = nodeRepository.save(nodeCopy);
+
+        return nodeMapper.nodeToNodeResponseDTO(savedNode);
     }
 
     public NodeResponseDTO updateTaskStatus(UUID nodeId, UUID taskStatusId, UpdateTaskAttributeRequestDTO request) {
