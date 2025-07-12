@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo } from "react";
+import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { SidebarMenuButton, SidebarMenuItem } from "./ui/sidebar";
@@ -20,8 +20,6 @@ import Link from "next/link";
 import { group, SidebarDropdown } from "./sidebar-options";
 import { useAuth } from "@/hooks/use-auth";
 import { useNodeModal } from "@/hooks/use-node-modal";
-import { Button } from "./ui/button";
-import { useRouter } from "next/navigation";
 import { useNodeStore } from "@/hooks/use-node-store";
 import axios from "axios";
 
@@ -56,7 +54,7 @@ export const SortableItem: React.FC<SortableItemProps> = ({
             {...attributes}
             {...listeners}
         >
-            <SidebarMenuButton asChild className="h-10 flex items-center">
+            <SidebarMenuButton asChild className="flex items-center">
                 <div>
                     <SortableItemDetails
                         item={item}
@@ -200,7 +198,7 @@ const SortableItemDetailsComponent: React.FC<SortableItemDetailsProps> = ({
             className="w-full flex items-center gap-1.5 overflow-hidden select-none"
         >
             <button
-                className="cursor-pointer transition-colors text-muted-foreground hover:text-muted"
+                className="cursor-pointer transition-colors text-muted-foreground hover:text-primary"
                 onClick={() => onCollapse(item.id)}
             >
                 <ChevronDown
@@ -210,7 +208,7 @@ const SortableItemDetailsComponent: React.FC<SortableItemDetailsProps> = ({
                     )}
                 />
             </button>
-            <Folder className="size-4 shrink-0 fill-muted" />
+            <Folder className="size-4 shrink-0 fill-primary stroke-0" />
             <span className="flex-1 truncate text-sm">{item.name}</span>
             <div className="flex items-center">
                 <SidebarDropdown
@@ -225,7 +223,7 @@ const SortableItemDetailsComponent: React.FC<SortableItemDetailsProps> = ({
                             isHovered && "opacity-100"
                         )}
                     >
-                        <EllipsisVertical className="size-4 stroke-muted-foreground hover:stroke-muted transition-colors" />
+                        <EllipsisVertical className="size-4 stroke-muted-foreground hover:stroke-primary transition-colors" />
                     </button>
                 </SidebarDropdown>
             </div>
@@ -244,7 +242,7 @@ const SortableItemDetailsComponent: React.FC<SortableItemDetailsProps> = ({
             )}
         >
             <Link
-                href={`/workspace/${item.id}`}
+                href={`/workspace/project/${item.id}/tasks?view=TableView`}
                 className="flex-1 truncate text-sm"
             >
                 {item.name}
@@ -262,7 +260,7 @@ const SortableItemDetailsComponent: React.FC<SortableItemDetailsProps> = ({
                             isHovered && "opacity-100"
                         )}
                     >
-                        <EllipsisVertical className="size-4 stroke-muted-foreground hover:stroke-muted transition-colors" />
+                        <EllipsisVertical className="size-4 stroke-muted-foreground hover:stroke-primary transition-colors" />
                     </button>
                 </SidebarDropdown>
             </div>

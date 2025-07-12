@@ -1,12 +1,9 @@
 import { AppSidebar } from "@/components/app-sidebar";
-import {
-    SidebarInset,
-    SidebarProvider,
-    SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { UserResponse } from "@/hooks/use-auth";
 import { createServer } from "@/lib/api/server";
 import { AuthProvider } from "@/providers/auth-provider";
+import { SidebarSortableProvider } from "@/providers/sidebar-sortable-provider";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import React from "react";
@@ -39,10 +36,11 @@ export default async function ProtectedLayout({
 
     return (
         <SidebarProvider>
-            <AppSidebar />
+            <SidebarSortableProvider>
+                <AppSidebar />
+            </SidebarSortableProvider>
             <SidebarInset>
                 <main>
-                    <SidebarTrigger />
                     <AuthProvider user={user} token={token}>
                         {children}
                     </AuthProvider>

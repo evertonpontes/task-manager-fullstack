@@ -28,7 +28,7 @@ import {
 import { FlattenedItem, NodeType } from "@/types/node";
 import { GalleryVerticalEnd } from "lucide-react";
 import { SortableTree } from "./sortable-tree";
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { flattenTree } from "@/lib/utils";
 import {
     getProjection,
@@ -40,16 +40,28 @@ import axios from "axios";
 import { useAuth } from "@/hooks/use-auth";
 import { useNodeStore } from "@/hooks/use-node-store";
 import { toast } from "react-toastify";
+import { SearchForm } from "./ui/search-form";
+import { SidebarSortableContext } from "@/providers/sidebar-sortable-provider";
 
 export const AppSidebar = () => {
-    const [isLoaded, setIsLoaded] = useState(false);
-    const [activeId, setActiveId] = useState<string | null>(null);
-    const [overId, setOverId] = useState<string | null>(null);
-    const [offsetLeft, setOffsetLeft] = useState(0);
-    const [isDragging, setIsDragging] = useState(false);
     const nodeStored = useNodeStore((state) => state.data);
     const setNodeData = useNodeStore((state) => state.setData);
     const token = useAuth((state) => state.token);
+
+    const {
+        isLoaded,
+        setIsLoaded,
+        filter,
+        setFilter,
+        activeId,
+        setActiveId,
+        overId,
+        setOverId,
+        offsetLeft,
+        setOffsetLeft,
+        isDragging,
+        setIsDragging,
+    } = useContext(SidebarSortableContext);
 
     useEffect(() => {
         async function fetchNodes() {
@@ -72,10 +84,14 @@ export const AppSidebar = () => {
 
         if (!token) return;
         fetchNodes();
-    }, [setNodeData, token]);
+    }, [setIsLoaded, setNodeData, token]);
+
+    useEffect(() => {
+        setFilter(nodeStored);
+    }, [nodeStored, setFilter]);
 
     const flattenedItems = useMemo(() => {
-        const flattenedTree: FlattenedItem[] = flattenTree(nodeStored);
+        const flattenedTree: FlattenedItem[] = flattenTree(filter);
         const collapsedItems = flattenedTree.reduce<string[]>(
             (acc, { children, collapsed, id }) =>
                 collapsed && children?.length ? [...acc, id] : acc,
@@ -88,7 +104,7 @@ export const AppSidebar = () => {
                 ? [activeId, ...collapsedItems]
                 : collapsedItems
         );
-    }, [activeId, isDragging, nodeStored]);
+    }, [activeId, isDragging, filter]);
 
     const projected =
         activeId && overId
@@ -132,7 +148,7 @@ export const AppSidebar = () => {
         if (over && projected) {
             const { depth, parentId, rank } = projected;
             const clonedItems: FlattenedItem[] = JSON.parse(
-                JSON.stringify(flattenTree(nodeStored))
+                JSON.stringify(flattenTree(filter))
             );
             const overIndex = clonedItems.findIndex(
                 (item) => item.id === over.id
@@ -170,7 +186,7 @@ export const AppSidebar = () => {
             onSubmitSortable(updatedItem);
 
             const rebuiltTree = buildTree(newItems);
-            setNodeData(rebuiltTree);
+            setFilter(rebuiltTree);
         }
     }
 
@@ -182,12 +198,12 @@ export const AppSidebar = () => {
     }
 
     function handleCollapse(id: string) {
-        const cloned: NodeType[] = nodeStored;
+        const cloned: NodeType[] = filter;
         const updatedNodes = setProperty(cloned, id, "collapsed", (value) => {
             return !value;
         });
 
-        setNodeData(updatedNodes);
+        setFilter(updatedNodes);
     }
 
     async function onSubmitSortable(item: FlattenedItem) {
@@ -216,7 +232,7 @@ export const AppSidebar = () => {
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem className="h-12 flex items-center justify-center">
-                        <SidebarMenuButton asChild>
+                        <SidebarMenuButton asChild className="h-10">
                             <a
                                 href="/workspace"
                                 className="text-base font-semibold"
@@ -227,9 +243,11 @@ export const AppSidebar = () => {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
+                <SidebarSeparator className="mx-0" />
             </SidebarHeader>
-            <SidebarSeparator className="mx-0" />
-            <SidebarContent>
+            <SidebarContent className="p-2 pt-0">
+                <SearchForm />
+                <SidebarSeparator className="mx-0" />
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}

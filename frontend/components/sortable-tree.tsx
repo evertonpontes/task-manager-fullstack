@@ -18,7 +18,6 @@ import { SortableItem } from "./sortable-item";
 import { UniqueIdentifier } from "@dnd-kit/core";
 import { group, SidebarDropdown } from "./sidebar-options";
 import { useNodeModal } from "@/hooks/use-node-modal";
-import { useState } from "react";
 
 interface SortableTreeProps {
     flat: FlattenedItem[];
@@ -52,7 +51,6 @@ export const SortableTree: React.FC<SortableTreeProps> = ({
         },
     ];
 
-    const [openDropdown, setOpenDropdown] = useState(false);
     const setOpenModal = useNodeModal((state) => state.setOpen);
     const setModalType = useNodeModal((state) => state.setModalType);
     const setKind = useNodeModal((state) => state.setKind);
@@ -70,14 +68,14 @@ export const SortableTree: React.FC<SortableTreeProps> = ({
     }
 
     return (
-        <SidebarGroup>
-            <SidebarGroupLabel className="text-sm">Projects</SidebarGroupLabel>
+        <SidebarGroup className="p-0">
             <SidebarDropdown groups={projectMenu}>
                 <SidebarGroupAction title="Create Project">
-                    <Plus className="size-5 shrink-0" />
+                    <Plus className="size-5" />
                 </SidebarGroupAction>
             </SidebarDropdown>
-            <SidebarGroupContent>
+            <SidebarGroupLabel className="text-sm">Projects</SidebarGroupLabel>
+            <SidebarGroupContent className="mt-2">
                 <SidebarMenu>
                     <SortableContext
                         items={items}
