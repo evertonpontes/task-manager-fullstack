@@ -4,6 +4,7 @@ import com.example.taskmanager.app.dtos.task.SaveSubTaskRequestDTO;
 import com.example.taskmanager.app.dtos.task.CreateTaskRequestDTO;
 import com.example.taskmanager.app.dtos.task.TaskResponseDTO;
 import com.example.taskmanager.app.dtos.task.UpdateTaskRequestDTO;
+import com.example.taskmanager.app.entities.Node;
 import com.example.taskmanager.app.entities.TaskStatus;
 import com.example.taskmanager.app.entities.TaskType;
 import com.example.taskmanager.app.entities.task.Task;
@@ -18,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -29,9 +31,10 @@ public class TaskService {
     private final TaskTypeRepository taskTypeRepository;
     private final TaskStatusRepository taskStatusRepository;
     private final SubTaskRepository subTaskRepository;
+    private final NodeRepository nodeRepository;
     private final TaskMapper taskMapper;
 
-    public TaskResponseDTO createTask(CreateTaskRequestDTO request) {
+    public TaskResponseDTO createTask(UUID projectId,CreateTaskRequestDTO request) {
         // Get authenticated user
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         
@@ -42,16 +45,30 @@ public class TaskService {
         TaskStatus taskStatus = taskStatusRepository.findById(request.taskStatusId())
                 .orElseThrow(() -> new EntityNotFoundException("TaskStatus not found with id: " + request.taskStatusId()));
 
+        Node project = nodeRepository.findById(projectId)
+                .orElseThrow(() -> new RuntimeException("Node not found with id: " + projectId));
+
+        if (!project.getUser().getId().equals(currentUser.getId())) {
+            throw new com.example.taskmanager.utils.exceptions.UnauthorizedAccessException("You don't have permission to create a project in this folder");
+        }
+        
+        BigDecimal commonRank = BigDecimal.valueOf(System.currentTimeMillis());
 
         // Create main task
         Task task = Task.builder()
                 .title(request.title())
+                .commonRank(commonRank)
+                .statusRank(taskStatus.getOrderIndex())
                 .description(request.description())
                 .priority(request.priority())
+                .startAt(request.startAt())
+                .estimatedTime(request.estimatedTime())
+                .spentTime(request.spentTime())
                 .dueDate(request.dueDate())
                 .taskType(taskType)
                 .taskStatus(taskStatus)
                 .user(currentUser)
+                .project(project)
                 .build();
         
         // Save the main task first to generate an ID
@@ -70,14 +87,20 @@ public class TaskService {
             subTaskRepository.saveAll(subTasks);
         }
         
-        return null;
+        return taskMapper.toTaskResponseDTO(savedTask);
     }
     
     private SubTask mapToSubTask(Task task, SaveSubTaskRequestDTO dto) {
+        Long maxRank = subTaskRepository.findMaxRankByTaskId(task.getId()).orElse(0L);
+        Long newRank = maxRank + 10000L;
 
         return SubTask.builder()
                 .title(dto.title())
+                .rank(newRank)
+                .estimatedTime(dto.estimatedTime())
+                .status(dto.status())
                 .dueDate(dto.dueDate())// Default sort index
+                .parentTask(task)
                 .build();
     }
 
@@ -106,7 +129,7 @@ public class TaskService {
             throw new UnauthorizedAccessException("You don't have permission to access this task");
         }
         
-        return null;
+        return taskMapper.toTaskResponseDTO(task);
     }
 
     /**
@@ -130,6 +153,12 @@ public class TaskService {
         }
         
         // Update task fields if they are not null in the request
+        if (request.commonRank() != null) {
+            task.setCommonRank(request.commonRank());
+        }
+        if (request.statusRank() != null) {
+            task.setStatusRank(request.statusRank());
+        }
         if (request.title() != null) {
             task.setTitle(request.title());
         }
@@ -139,8 +168,17 @@ public class TaskService {
         if (request.priority() != null) {
             task.setPriority(request.priority());
         }
+        if (request.startAt() != null) {
+            task.setStartAt(request.startAt());
+        }
         if (request.dueDate() != null) {
             task.setDueDate(request.dueDate());
+        }
+        if (request.spentTime() != null) {
+            task.setSpentTime(request.spentTime());
+        }
+        if (request.estimatedTime() != null) {
+            task.setEstimatedTime(request.estimatedTime());
         }
         if (request.taskTypeId() != null) {
             TaskType taskType = taskTypeRepository.findById(request.taskTypeId())
@@ -152,10 +190,15 @@ public class TaskService {
                     .orElseThrow(() -> new EntityNotFoundException("TaskStatus not found with id: " + request.taskStatusId()));
             task.setTaskStatus(taskStatus);
         }
+        if (request.projectId() != null) {
+            Node project = nodeRepository.findById(request.projectId())
+                    .orElseThrow(() -> new EntityNotFoundException("Project not found with id: " + request.projectId()));
+            task.setProject(project);
+        }
         
         // Save the updated task
         Task updatedTask = taskRepository.save(task);
-        return null;
+        return taskMapper.toTaskResponseDTO(updatedTask);
     }
 
     /**
@@ -198,10 +241,16 @@ public class TaskService {
         if (!parentTask.getUser().getId().equals(currentUser.getId())) {
             throw new UnauthorizedAccessException("You don't have permission to add subtasks to this task");
         }
+
+        Long maxRank = subTaskRepository.findMaxRankByTaskId(parentTask.getId()).orElse(0L);
+        Long newRank = maxRank + 10000L;
         
         // Create and save the new subtask
         SubTask subTask = SubTask.builder()
                 .title(request.title())
+                .status(request.status())
+                .estimatedTime(request.estimatedTime())
+                .rank(newRank)
                 .dueDate(request.dueDate())
                 .parentTask(parentTask)
                 .build();
@@ -210,7 +259,7 @@ public class TaskService {
         parentTask.getSubTasks().add(subTask);
         Task updatedTask = taskRepository.save(parentTask);
         
-        return null;
+        return taskMapper.toTaskResponseDTO(updatedTask);
     }
     
     /**
@@ -247,22 +296,27 @@ public class TaskService {
         if (request.dueDate() != null) {
             subTask.setDueDate(request.dueDate());
         }
+        if (request.status() != null) {
+            subTask.setStatus(request.status());
+        }
+        if (request.estimatedTime() != null) {
+            subTask.setEstimatedTime(request.estimatedTime());
+        }
         
         // Save the parent task to cascade the changes to subtasks
         Task updatedTask = taskRepository.save(parentTask);
-        return null;
+        return taskMapper.toTaskResponseDTO(updatedTask);
     }
     
     /**
      * Deletes a subtask from the specified parent task.
      * @param taskId ID of the parent task
      * @param subTaskId ID of the subtask to delete
-     * @return TaskResponseDTO of the parent task without the deleted subtask
      * @throws EntityNotFoundException if the parent task or subtask is not found
      * @throws UnauthorizedAccessException if the user doesn't have permission to delete the subtask
      */
     @Transactional
-    public TaskResponseDTO deleteSubTask(UUID taskId, UUID subTaskId) {
+    public void deleteSubTask(UUID taskId, UUID subTaskId) {
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         
         // Find parent task and verify ownership
@@ -283,7 +337,6 @@ public class TaskService {
         }
         
         // Save the parent task to cascade the deletion of the subtask
-        Task updatedTask = taskRepository.save(parentTask);
-        return null;
+        taskRepository.save(parentTask);
     }
 }

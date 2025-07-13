@@ -15,15 +15,15 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/tasks")
+@RequestMapping("/api/{projectId}/tasks")
 @RequiredArgsConstructor
 public class TaskController {
     private final TaskService taskService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TaskResponseDTO createTask(@Valid @RequestBody CreateTaskRequestDTO request) {
-        return taskService.createTask(request);
+    public TaskResponseDTO createTask(@PathVariable UUID projectId, @Valid @RequestBody CreateTaskRequestDTO request) {
+        return taskService.createTask(projectId, request);
     }
 
     @GetMapping
@@ -45,8 +45,9 @@ public class TaskController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteTask(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteTask(@PathVariable UUID id) {
         taskService.deleteTask(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PostMapping("/{taskId}/subtasks")
@@ -66,9 +67,10 @@ public class TaskController {
     }
 
     @DeleteMapping("/{taskId}/subtasks/{subTaskId}")
-    public ResponseEntity<TaskResponseDTO> deleteSubTask(
+    public ResponseEntity<Void> deleteSubTask(
             @PathVariable UUID taskId,
             @PathVariable UUID subTaskId) {
-        return ResponseEntity.ok(taskService.deleteSubTask(taskId, subTaskId));
+        taskService.deleteSubTask(taskId, subTaskId);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

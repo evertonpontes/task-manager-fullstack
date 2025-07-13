@@ -1,5 +1,6 @@
 package com.example.taskmanager.app.dtos.task;
 
+import com.example.taskmanager.app.entities.task.StatusEnum;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.math.BigDecimal;
@@ -9,10 +10,11 @@ import java.util.UUID;
 
 public record SubTaskResponseDTO(
         UUID id,
-        BigDecimal sortIndex,
+        BigDecimal rank,
         String title,
         LocalDateTime dueDate,
-        LocalTime estimatedTime,
+        StatusEnum status,
+        Integer estimatedTime,
         @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
         LocalDateTime createdAt,
         @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
